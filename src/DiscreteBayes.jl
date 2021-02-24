@@ -99,6 +99,7 @@ function generate_function_expression(function_name, sig, variables, body)
 	)
 end
 
+# -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
 # problem = "Promedus_11"
 # problem = "Promedus_26"
@@ -106,9 +107,12 @@ end
 # problem = "03-merlin-simple6"
 problem = "05-mrv"
 
-td_filepath       = "../problems/"*problem*"/"*problem*".td"
-uai_filepath      = "../problems/"*problem*"/"*problem*".uai"
-uai_evid_filepath = "../problems/"*problem*"/"*problem*".uai.evid"
+problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"/")
+
+td_filepath = problem_dir*problem*".td"
+uai_filepath = problem_dir*problem*".uai"
+uai_evid_filepath = problem_dir*problem*".uai.evid"
+# -----------------------------------------------------------------------------
 
 ##
 """
