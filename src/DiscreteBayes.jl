@@ -549,25 +549,18 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
   # Normalize all marginals
   normalize_marginals_expr =
-    map(x -> x.args[1], unnormalized_marginals) |>
-    x -> :(norm.([$(x...)]))
+    map(x -> x.args[1], unnormalized_marginals) |> # get the variable name
+    x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
 
   push!(algo.args, normalize_marginals_expr)
 
-  # # DEBUG
-  # @time eval(algo)
-;
   # ==============================================================================
   # # Common subexpression elimination
   # ==============================================================================
-  # algo = cse(algo);
+  # algo_cse = CommonSubexpressions.binarize(algo) |> cse
 
   # # DEBUG
-  # @time eval(algo);
-
-  # # DEBUG
-  # print(algo)
-
+  # print(algo_cse)
 ;
   ##
 
@@ -575,6 +568,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   sig = ()
   variables = []
   body = algo
+  # body = algo_cse
 
   return generate_function_expression(function_name, sig, variables, body)
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
