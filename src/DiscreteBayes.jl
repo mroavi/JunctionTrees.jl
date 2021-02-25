@@ -525,18 +525,27 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # # Compute marginals
   # ==============================================================================
 
+  # Traverse bags in ascending order according to their number of vars
+  nvars_per_bag = map(bag_id -> length(get_prop(g, bag_id, :vars)), 1:nbags)
+  bag_traversal_order = sort(nvars_per_bag) |> x -> indexin(x, nvars_per_bag)
+
+  bag_traversal_order =
+    map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nbags) |>
+    x -> sort(x, by=y -> y[end]) |>
+    x -> map(y -> y[begin], x)
+
   # Used to store the unnormalized marginal expressions
   unnormalized_marginals = Vector{Expr}(undef, nvars)
 
-  for bag in PostOrderDFS(root)
+  for bag_id in bag_traversal_order
     # Marginal expressions for each variable
-    bag_vars = get_prop(g, bag.id, :vars)
+    bag_vars = get_prop(g, bag_id, :vars)
     for var in bag_vars
       isassigned(unnormalized_marginals, var) && continue
       mar_vars = setdiff(bag_vars, var)
       unnorm_mar_var_name = Symbol("unnorm_mar_", var)
       unnormalized_marginals[var] = 
-        bag_marginals[bag.id].args[1] |>
+        bag_marginals[bag_id].args[1] |>
         bag_mar_var_name -> :($unnorm_mar_var_name = marg($bag_mar_var_name, $mar_vars))
     end
   end
