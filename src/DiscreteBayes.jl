@@ -303,7 +303,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
   # Sort scope vars in ascending order and permute table dims accordingly
   scopes_sorted = map(sort, scopes)
-  tables_sorted = map(indexin, scopes, scopes_sorted) |> x -> map(permutedims, tables, x)
+  tables_sorted = map(indexin, scopes_sorted, scopes) |> x -> map(permutedims, tables, x)
 
   # Wrap the tables with their corresponding scopes in an array of Factor type
   factors = [Factor(scope, table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
