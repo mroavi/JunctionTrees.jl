@@ -279,7 +279,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     x -> map(y -> map(z -> parse(Int, z), y), x) |> # parse each string element as an integer
     x -> map(y -> y[2:end], x) |>         # drop first element of each inner array
     x -> map(y -> map( z -> z +1, y), x) |> # convert to 1-based index
-    x -> map(reverse, x)                  # make the first var the 'most significant' digit
+    x -> map(reverse, x)                  # order vars in ascending order (least significant first)
 
   tables1 =
     lines[(5+ntables):end] |>             # extract the probability tables definition lines
