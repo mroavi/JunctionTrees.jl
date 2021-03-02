@@ -205,16 +205,16 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     has_observed_var && set_prop!(g, bag_id, :isobserved, true)
 
     # Create an empty vector of factors
-    set_prop!(g, bag_id, :factors, Factor[])
+    set_prop!(g, bag_id, :factors, Factor{Float64}[])
 
     # Create an empty vector of expressions of incoming messages
-    set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor}[])
+    set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor{Float64}}[])
 
   end
 
   # # DEBUG
   # obsvars # observed vars with their corresponding value (vars on first row, vals on second row)
-  # map(vertex -> get_prop(g, vertex, :vars), vertices(g)) # scope of each bag
+  # map(x -> string(x,": ",get_prop(g,x,:vars)), vertices(g)) |> x -> show(stdout, "text/plain", x)
   # filter_vertices(g, :isobserved) |> collect # bags that contain at least one observed var
 
   # ==============================================================================
@@ -306,7 +306,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   tables_sorted = map(indexin, scopes_sorted, scopes) |> x -> map(permutedims, tables, x)
 
   # Wrap the tables with their corresponding scopes in an array of Factor type
-  factors = [Factor(scope, table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
+  factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
   # ==============================================================================
   # Assign each factor to a cluster

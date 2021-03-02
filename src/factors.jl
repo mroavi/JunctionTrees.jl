@@ -1,10 +1,14 @@
 """
 A composite type that implements the factor datatype.
 """
-struct Factor
-  vars::Array{Int64}
-  vals::Array{Float64}
+
+mutable struct Factor{T, N}
+  vars::NTuple{N,Int64}
+  vals::Array{T,N}
 end
+
+import Base: eltype
+eltype(::Factor{T,N}) where {T,N} = T 
 
 """
     product(A::Factor, B::Factor)
@@ -13,12 +17,12 @@ Compute a factor product of tables `A` and `B`.
 
 # Examples
 ```julia
-A = Factor([2; 1], [0.5 0.1 0.03; 0.8 0.0 0.9])
-B = Factor([3; 2], [0.5 0.1; 0.7 0.2])
+A = Factor{Float64,2}((2, 1), [0.5 0.1 0.03; 0.8 0.0 0.9])
+B = Factor{Float64,2}((3, 2), [0.5 0.1; 0.7 0.2])
 C = product(A, B)
 ```
 """
-function product(A::Factor, B::Factor)
+function product(A::Factor{T}, B::Factor{T}) where T
 
   isempty(A.vars) && return Factor(B.vars, B.vals)
   isempty(B.vars) && return Factor(A.vars, A.vals)
@@ -29,16 +33,19 @@ function product(A::Factor, B::Factor)
   C_card = zeros(Int64, length(C_vars))
   C_card[mapA] = size(A.vals) |> collect
   C_card[mapB] = size(B.vals) |> collect
-  C_vals = zeros(eltype(A.vals), Tuple(C_card))
+  C_vals = zeros(eltype(A), Tuple(C_card))
   assignments = CartesianIndices(C_vals)
   indxA = [CartesianIndex(i.I[mapA]) for i in assignments] # extract `mapA` columns
   indxB = [CartesianIndex(i.I[mapB]) for i in assignments] # extract `mapB` columns
   C_vals = A.vals[indxA] .* B.vals[indxB]
-  return Factor(C_vars, C_vals)
+  return Factor{T,length(C_vars)}(Tuple(C_vars), C_vals)
 end
 
-product(F::Array{Factor}) = reduce(product, F; init = Factor(Int64[], Float64[]))
-product(F::Factor...) = product(Factor[F...])
+function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
+  reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
+end
+
+product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
 
 """
     marg(A::Factor, V::Array{Int64})
@@ -49,26 +56,27 @@ https://www.coursera.org/learn/probabilistic-graphical-models/home/week/1
 
 # Examples
 ```julia
-A = Factor([3; 2; 1], cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
-                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+A = Factor{Float64,3}((3, 2, 1), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 V = [1]
 B = marg(A, V)
 
-A = Factor([2; 7; 1], cat([1 2; 3 4;  5  6],
-                          [7 8; 9 10; 11 12], dims=3))
+A = Factor{Float64,3}((2, 7, 1), cat([1 2; 3 4;  5  6],
+                                     [7 8; 9 10; 11 12], dims=3))
 V = [7]
 B = marg(A, V)
 ```
 """
-function marg(A::Factor, V::Array{Int64})
+function marg(A::Factor{T}, V::Array{Int64}) where T
   B_vars = setdiff(A.vars, V)
-  mapB = indexin(B_vars, A.vars)
+  mapB = indexin(B_vars, collect(A.vars))
   B_card = size(A.vals)[mapB]
   S_vars = intersect(A.vars, V)
-  mapS = indexin(S_vars, A.vars)
+  mapS = indexin(S_vars, collect(A.vars))
   B_vals = sum(A.vals, dims=mapS) |> x -> dropdims(x, dims=Tuple(mapS))
-  return Factor(B_vars, B_vals)
+  return Factor{T,length(B_vars)}(Tuple(B_vars), B_vals)
 end
+marg(A::Factor, V::Int) = marg(A, [V])
 
 """
     redu(A::Factor, var::Int64, val::Int64)
@@ -77,23 +85,23 @@ Reduce/invalidate all entries that are not consitent with the evidence.
 
 # Examples
 ```julia
-A = Factor([1; 2; 3], cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
-                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 var = 3
 val = 1
 B = redu(A, var, val)
 ```
 """
-function redu(A::Factor, var::Int64, val::Int64)
+function redu(A::Factor{T}, var::Int64, val::Int64) where T
   B_vars = setdiff(A.vars, var)
-  mapB = indexin(B_vars, A.vars)
+  mapB = indexin(B_vars, collect(A.vars))
   B_card = size(A.vals)[mapB]
   R_vars = intersect(A.vars, var)
-  mapR = indexin(R_vars, A.vars)
+  mapR = indexin(R_vars, collect(A.vars))
   indxA = ntuple(i -> (i == mapR[1]) ? val : :, length(A.vars))
   indxA = CartesianIndices(A.vals)[indxA...] # here occurs the actual reduction
   B_vals = A.vals[indxA]
-  return Factor(B_vars, A.vals[indxA])
+  return Factor{T,length(B_vars)}(Tuple(B_vars), A.vals[indxA])
 end
 
 """
