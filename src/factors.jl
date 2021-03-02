@@ -48,7 +48,7 @@ end
 product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
 
 """
-    marg(A::Factor, V::Array{Int64})
+    marg(A::Factor, V::Vector{Int64})
 
 Sum out the variables inside `V` from factor A.
 Based on an assignment of the coursera course Probabilistic Graphical Models.
@@ -67,14 +67,14 @@ V = [7]
 B = marg(A, V)
 ```
 """
-function marg(A::Factor{T}, V::Array{Int64}) where T
-  B_vars = setdiff(A.vars, V)
-  mapB = indexin(B_vars, collect(A.vars))
-  B_card = size(A.vals)[mapB]
-  S_vars = intersect(A.vars, V)
-  mapS = indexin(S_vars, collect(A.vars))
-  B_vals = sum(A.vals, dims=mapS) |> x -> dropdims(x, dims=Tuple(mapS))
-  return Factor{T,length(B_vars)}(Tuple(B_vars), B_vals)
+function marg(A::Factor{T}, V::Vector{Int64}) where T
+  dims = indexin(V, collect(A.vars)) # map vars to dims
+  r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), length(A.vars)) # assign 1 to summed out dims
+  ret_size = filter(s -> s != 1, r_size)
+  ret_vars = filter(v -> v ∉ V, A.vars)
+  r_vals = similar(A.vals, r_size)
+  ret_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=Tuple(dims))
+  Factor{eltype(A.vals),length(ret_vars)}(ret_vars, ret_vals)
 end
 marg(A::Factor, V::Int) = marg(A, [V])
 
