@@ -23,22 +23,20 @@ C = product(A, B)
 ```
 """
 function product(A::Factor{T}, B::Factor{T}) where T
-
   isempty(A.vars) && return Factor(B.vars, B.vals)
   isempty(B.vars) && return Factor(A.vars, A.vals)
-
-  C_vars = union(A.vars, B.vars)
-  mapA = indexin(A.vars, C_vars)
-  mapB = indexin(B.vars, C_vars)
-  C_card = zeros(Int64, length(C_vars))
-  C_card[mapA] = size(A.vals) |> collect
-  C_card[mapB] = size(B.vals) |> collect
-  C_vals = zeros(eltype(A), Tuple(C_card))
-  assignments = CartesianIndices(C_vals)
-  indxA = [CartesianIndex(i.I[mapA]) for i in assignments] # extract `mapA` columns
-  indxB = [CartesianIndex(i.I[mapB]) for i in assignments] # extract `mapB` columns
-  C_vals = A.vals[indxA] .* B.vals[indxB]
-  return Factor{T,length(C_vars)}(Tuple(C_vars), C_vals)
+  A_card = collect(size(A.vals))
+  B_card = collect(size(B.vals))
+  C_vars = union(A.vars, B.vars) |> sort
+  A_card_new = ones(Int64, length(C_vars))
+  B_card_new = ones(Int64, length(C_vars))
+  for (i,c_var) in enumerate(C_vars)
+    c_var in A.vars && (A_card_new[i] = popfirst!(A_card))
+    c_var in B.vars && (B_card_new[i] = popfirst!(B_card))
+  end
+  A_vals_new = reshape(A.vals, Tuple(A_card_new))
+  B_vals_new = reshape(B.vals, Tuple(B_card_new))
+  Factor{Float64, length(C_vars)}(Tuple(C_vars), A_vals_new .* B_vals_new)
 end
 
 function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
