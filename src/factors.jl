@@ -2,13 +2,15 @@
 A composite type that implements the factor datatype.
 """
 
-mutable struct Factor{T, N}
-  vars::NTuple{N,Int64}
-  vals::Array{T,N}
+struct Factor{V,C,T}
+  vals::T
 end
 
-import Base: eltype
-eltype(::Factor{T,N}) where {T,N} = T 
+getvars(::Factor{V}) where {V} = V
+getcard(::Factor{V,C}) where {V,C} = C
+import Base: eltype, ndims, size
+ndims(::Factor{V}) where {V} = length(V)
+eltype(::Factor{V,C,<:AbstractArray{T}}) where {V,C,T} = T
 
 """
     product(A::Factor, B::Factor)
@@ -17,33 +19,36 @@ Compute a factor product of tables `A` and `B`.
 
 # Examples
 ```julia
-A = Factor{Float64,2}((2, 1), [0.5 0.1 0.03; 0.8 0.0 0.9])
-B = Factor{Float64,2}((3, 2), [0.5 0.1; 0.7 0.2])
+A = Factor{(1,2), (2,3), Array{Float64,2}}([0.5 0.1 0.3; 0.8 0.0 0.9])
+B = Factor{(1,3), (2,2), Array{Float64,2}}([0.5 0.1; 0.7 0.2])
 C = product(A, B)
 ```
 """
-function product(A::Factor{T}, B::Factor{T}) where T
-  isempty(A.vars) && return Factor(B.vars, B.vals)
-  isempty(B.vars) && return Factor(A.vars, A.vals)
-  A_card = collect(size(A.vals))
-  B_card = collect(size(B.vals))
-  C_vars = union(A.vars, B.vars) |> sort
+function product(A::Factor, B::Factor)
+  A_vars = getvars(A)
+  A_card = getcard(A) |> collect
+  B_vars = getvars(B)
+  B_card = getcard(B) |> collect
+  isempty(A_vars) && return B
+  isempty(B_vars) && return A
+  C_vars = union(A_vars, B_vars) |> sort |> Tuple
   A_card_new = ones(Int64, length(C_vars))
   B_card_new = ones(Int64, length(C_vars))
-  for (i,c_var) in enumerate(C_vars)
-    c_var in A.vars && (A_card_new[i] = popfirst!(A_card))
-    c_var in B.vars && (B_card_new[i] = popfirst!(B_card))
+  for (i,C_var) in enumerate(C_vars)
+    C_var in A_vars && (A_card_new[i] = popfirst!(A_card))
+    C_var in B_vars && (B_card_new[i] = popfirst!(B_card))
   end
+  C_card = hcat(A_card_new, B_card_new) |> x -> maximum(x, dims=2) |> x -> dropdims(x, dims=2) |> Tuple
   A_vals_new = reshape(A.vals, Tuple(A_card_new))
   B_vals_new = reshape(B.vals, Tuple(B_card_new))
-  Factor{Float64, length(C_vars)}(Tuple(C_vars), A_vals_new .* B_vals_new)
+  Factor{C_vars, C_card, Array{Float64, length(C_vars)}}(A_vals_new .* B_vals_new)
 end
 
-function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
-  reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
+function product(F::AbstractArray{<:Factor, 1})
+  reduce(product, F; init = Factor{(), (), Array{eltype(F[1]),0}}(Array{eltype(F[1]),0}(undef)))
 end
 
-product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
+product(F::Factor...) = product(Factor[F...])
 
 """
     marg(A::Factor, V::Vector{Int64})
@@ -54,27 +59,22 @@ https://www.coursera.org/learn/probabilistic-graphical-models/home/week/1
 
 # Examples
 ```julia
-A = Factor{Float64,3}((3, 2, 1), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
-                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+A = Factor{(1,2,3),(2,2,3), Array{Float64,3}}(cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                                  [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 V = [1]
-B = marg(A, V)
-
-A = Factor{Float64,3}((2, 7, 1), cat([1 2; 3 4;  5  6],
-                                     [7 8; 9 10; 11 12], dims=3))
-V = [7]
 B = marg(A, V)
 ```
 """
-function marg(A::Factor{T}, V::Vector{Int64}) where T
-  dims = indexin(V, collect(A.vars)) # map vars to dims
-  r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), length(A.vars)) # assign 1 to summed out dims
-  ret_size = filter(s -> s != 1, r_size)
-  ret_vars = filter(v -> v ∉ V, A.vars)
-  r_vals = similar(A.vals, r_size)
-  ret_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=Tuple(dims))
-  Factor{eltype(A.vals),length(ret_vars)}(ret_vars, ret_vals)
+function marg(A::Factor, vars::Tuple)
+  drop_dims = indexin(vars, collect(getvars(A))) |> Tuple # map V to dims
+  r_card = ntuple(d -> d in drop_dims ? 1 : getcard(A)[d], ndims(A)) # assign 1 to summed out dims
+  B_card = filter(s -> s != 1, r_card)
+  B_vars = filter(v -> v ∉ vars, getvars(A))
+  r_vals = similar(A.vals, r_card)
+  B_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=drop_dims)
+  return Factor{B_vars, B_card, Array{Float64,length(B_vars)}}(B_vals)
 end
-marg(A::Factor, V::Int) = marg(A, [V])
+marg(A::Factor, V::Int) = marg(A, (V,))
 
 """
     redu(A::Factor, var::Int64, val::Int64)
@@ -83,23 +83,24 @@ Reduce/invalidate all entries that are not consitent with the evidence.
 
 # Examples
 ```julia
-A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
-                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+A = Factor{(1, 2, 3),(3,2,2),Array{Float64,3}}(, cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 var = 3
 val = 1
 B = redu(A, var, val)
 ```
 """
-function redu(A::Factor{T}, var::Int64, val::Int64) where T
-  B_vars = setdiff(A.vars, var)
-  mapB = indexin(B_vars, collect(A.vars))
+function redu(A::Factor, var, val)
+  A_vars = getvars(A)
+  B_vars = setdiff(A_vars, var)
+  mapB = indexin(B_vars, collect(A_vars))
   B_card = size(A.vals)[mapB]
-  R_vars = intersect(A.vars, var)
-  mapR = indexin(R_vars, collect(A.vars))
-  indxA = ntuple(i -> (i == mapR[1]) ? val : :, length(A.vars))
+  R_vars = intersect(A_vars, var)
+  mapR = indexin(R_vars, collect(A_vars))
+  indxA = ntuple(i -> (i == mapR[1]) ? val : :, length(A_vars))
   indxA = CartesianIndices(A.vals)[indxA...] # here occurs the actual reduction
   B_vals = A.vals[indxA]
-  return Factor{T,length(B_vars)}(Tuple(B_vars), A.vals[indxA])
+  return Factor{Tuple(B_vars), Tuple(B_card), Array{eltype(A), length(B_vars)}}(A.vals[indxA])
 end
 
 """
@@ -110,11 +111,11 @@ and 1.
 
 # Examples
 ```julia
-A = Factor([2, 1], [1.0 2.0 3.0; 4.0 5.0 6.0])
+A = Factor{(1,2),(2,3), Array{Float64,2}}([1.0 2.0 3.0; 4.0 5.0 6.0])
 B = norm(A)
 ```
 """
 function norm(A::Factor)
-  return Factor(A.vars, A.vals ./ sum(A.vals))
+  return Factor{getvars(A), getcard(A), Array{eltype(A),length(getvars(A))}}(A.vals ./ sum(A.vals))
 end
 
