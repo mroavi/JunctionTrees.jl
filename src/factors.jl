@@ -10,7 +10,7 @@ getvars(::Factor{V}) where {V} = V
 getcard(::Factor{V,C}) where {V,C} = C
 import Base: eltype, ndims, size
 ndims(::Factor{V}) where {V} = length(V)
-eltype(::Factor{V,C,<:AbstractArray{T}}) where {V,C,T} = T
+eltype(::Factor{V,C,T}) where {V,C,T} = eltype(T)
 
 """
     product(A::Factor, B::Factor)
@@ -41,11 +41,11 @@ function product(A::Factor, B::Factor)
   C_card = hcat(A_card_new, B_card_new) |> x -> maximum(x, dims=2) |> x -> dropdims(x, dims=2) |> Tuple
   A_vals_new = reshape(A.vals, Tuple(A_card_new))
   B_vals_new = reshape(B.vals, Tuple(B_card_new))
-  Factor{C_vars, C_card, Array{Float64, length(C_vars)}}(A_vals_new .* B_vals_new)
+  Factor{C_vars, C_card, Array{eltype(A), length(C_vars)}}(A_vals_new .* B_vals_new)
 end
 
 function product(F::AbstractArray{<:Factor, 1})
-  reduce(product, F; init = Factor{(), (), Array{eltype(F[1]),0}}(Array{eltype(F[1]),0}(undef)))
+  reduce(product, F; init = Factor{(), (), Array{Float64,0}}(Array{Float64,0}(undef)))
 end
 
 product(F::Factor...) = product(Factor[F...])
@@ -72,7 +72,7 @@ function marg(A::Factor, vars::Tuple)
   B_vars = filter(v -> v ∉ vars, getvars(A))
   r_vals = similar(A.vals, r_card)
   B_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=drop_dims)
-  return Factor{B_vars, B_card, Array{Float64,length(B_vars)}}(B_vals)
+  return Factor{B_vars, B_card, Array{eltype(A),length(B_vars)}}(B_vals)
 end
 marg(A::Factor, V::Int) = marg(A, (V,))
 
