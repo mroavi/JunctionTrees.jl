@@ -10,7 +10,9 @@ export computeMarginalsExpr,
   product,
   marg,
   redu,
-  norm
+  norm,
+  getvars,
+  getcard
 
 using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions
 
@@ -102,10 +104,10 @@ end
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
 # problem = "Promedus_11"
-# problem = "Promedus_26"
+problem = "Promedus_26"
 # problem = "01-example-paskin"
 # problem = "03-merlin-simple6"
-problem = "05-mrv"
+# problem = "05-mrv"
 
 problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"/")
 
@@ -205,10 +207,10 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     has_observed_var && set_prop!(g, bag_id, :isobserved, true)
 
     # Create an empty vector of factors
-    set_prop!(g, bag_id, :factors, Factor{Float64}[])
+    set_prop!(g, bag_id, :factors, Factor[])
 
     # Create an empty vector of expressions of incoming messages
-    set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor{Float64}}[])
+    set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor}[])
 
   end
 
@@ -306,7 +308,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   tables_sorted = map(indexin, scopes_sorted, scopes) |> x -> map(permutedims, tables, x)
 
   # Wrap the tables with their corresponding scopes in an array of Factor type
-  factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
+  factors = [Factor{Tuple(scope), size(table), Array{Float64,length(scope)}}(table) 
+             for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
   # ==============================================================================
   # Assign each factor to a cluster
@@ -324,7 +327,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # 1) covers its vars and 2) is closest to a leaf
   for factor in factors
     for bag in PostOrderDFS(root)
-      if issubset(factor.vars, get_prop(g, bag.id, :vars))
+      if issubset(getvars(factor), get_prop(g, bag.id, :vars))
         push!(get_prop(g, bag.id, :factors), factor)
         break
       end
@@ -379,7 +382,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     # Get the variables that need to be marginalized
     bag_vars = get_prop(g, bag.id, :vars)
     out_edge_sepset = get_prop(g, bag.id, parent_bag.id, :sepset)
-    mar_vars = setdiff(bag_vars, out_edge_sepset)
+    mar_vars = setdiff(bag_vars, out_edge_sepset) |> Tuple
 
     # Marginalize vars to compute the upstream message
     msg_var_name = Symbol("msg_", bag.id, "_", parent_bag.id)
@@ -462,7 +465,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       # Get the variables that need to be marginalized
       bag_vars = get_prop(g, vertices(g)[bag.id], :vars)
       out_edge_sepset = get_prop(g, bag.id, child.id, :sepset)
-      mar_vars = setdiff(bag_vars, out_edge_sepset)
+      mar_vars = setdiff(bag_vars, out_edge_sepset) |> Tuple
 
       # Marginalize vars
       msg_var_name = Symbol("msg_", bag.id, "_", child.id)
@@ -542,7 +545,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     bag_vars = get_prop(g, bag_id, :vars)
     for var in bag_vars
       isassigned(unnormalized_marginals, var) && continue
-      mar_vars = setdiff(bag_vars, var)
+      mar_vars = setdiff(bag_vars, var) |> Tuple
       unnorm_mar_var_name = Symbol("unnorm_mar_", var)
       unnormalized_marginals[var] = 
         bag_marginals[bag_id].args[1] |>
