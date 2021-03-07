@@ -50,6 +50,11 @@ using Test
   @test D.vals ≈ cat([0.00421201 0.00292699; 0.03833764 0.13592436],
                      [0.00292699 0.00203401; 0.13592436 0.48191364], dims=3)
 
+  A = Factor[]
+  B = product(A)
+  @test getvars(B) == ()
+  @test getcard(B) == ()
+
   # Factor marginalization
 
   A = Factor{(1,2), (2,2), Array{Float64,2}}([0.59 0.41; 0.22 0.78])
