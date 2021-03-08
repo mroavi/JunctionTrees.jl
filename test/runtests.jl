@@ -42,6 +42,11 @@ using Test
   @test C.vars == (1, 2)
   @test C.vals ≈ [0.0649 0.0451; 0.1958 0.6942]
 
+  A = Factor{Float64,1}((1,), [0.11; 0.89])
+  B = product([A])
+  @test B.vars == (1,)
+  @test B.vals ≈ [0.11; 0.89]
+
   # Factor marginalization
 
   A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
