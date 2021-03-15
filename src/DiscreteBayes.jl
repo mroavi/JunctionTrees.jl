@@ -12,7 +12,7 @@ export computeMarginalsExpr,
   redu,
   norm
 
-using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions
+using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays
 
 include("factors.jl")
 include("tree.jl")
