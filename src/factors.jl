@@ -11,70 +11,113 @@ import Base: eltype
 eltype(::Factor{T,N}) where {T,N} = T 
 
 """
-    product(A::Factor, B::Factor)
+    prepare_factor_prod(in_factors::Factor...)
 
-Compute a factor product of tables `A` and `B`.
+Prepares input factors for a subsequent factor product by
+assigning 1s to dimensions that correspond to variables
+that are present in other factors. This converts the factors
+to a common size which allows a subsequent broadcast
+multiplication.
 
 # Examples
 ```julia
-A = Factor{Float64,2}((2, 1), [0.5 0.1 0.03; 0.8 0.0 0.9])
-B = Factor{Float64,2}((3, 2), [0.5 0.1; 0.7 0.2])
-C = product(A, B)
+A = Factor{Float64,2}((1, 2), [0.5 0.1 0.03; 0.8 0.0 0.9])
+B = Factor{Float64,2}((1, 3), [0.5 0.1; 0.7 0.2])
+in_factors_new = prepare_factor_prod(A, B)
 ```
 """
-function product(A::Factor{T}, B::Factor{T}) where T
-  isempty(A.vars) && return Factor(B.vars, B.vals)
-  isempty(B.vars) && return Factor(A.vars, A.vals)
-  A_card = collect(size(A.vals))
-  B_card = collect(size(B.vals))
-  C_vars = union(A.vars, B.vars) |> sort
-  A_card_new = ones(Int64, length(C_vars))
-  B_card_new = ones(Int64, length(C_vars))
-  for (i,c_var) in enumerate(C_vars)
-    c_var in A.vars && (A_card_new[i] = popfirst!(A_card))
-    c_var in B.vars && (B_card_new[i] = popfirst!(B_card))
+function prepare_factor_prod(in_factors::Factor{T}...) where T
+  in_factors_card = map(x -> collect(size(x.vals)), in_factors)
+  out_factor_vars = map(x -> x.vars, in_factors) |> x -> union(x...) |> sort |> Tuple
+  out_factors_card = map(x -> ones(Int64, length(out_factor_vars)), in_factors)
+  for (i, out_factor_var) in enumerate(out_factor_vars)
+    for (j, in_factor_vars) in enumerate(map(x -> x.vars, in_factors))
+      out_factor_var in in_factor_vars && (out_factors_card[j][i] = popfirst!(in_factors_card[j]))
+    end
   end
-  A_vals_new = reshape(A.vals, Tuple(A_card_new))
-  B_vals_new = reshape(B.vals, Tuple(B_card_new))
-  Factor{Float64, length(C_vars)}(Tuple(C_vars), A_vals_new .* B_vals_new)
+  in_factors_vals = map(in_factor -> in_factor.vals, in_factors)
+  out_factors_vals = map((x, y) -> reshape(x, Tuple(y)), in_factors_vals, out_factors_card)
+  out_factors = map(x -> Factor{T, length(out_factor_vars)}(out_factor_vars, x), out_factors_vals)
+  return out_factors
 end
 
-function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
-  reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
-end
-
-product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
+prepare_factor_prod(in_factor::Factor) = (in_factor,)
+prepare_factor_prod() = ()
 
 """
-    marg(A::Factor, V::Vector{Int64})
+    factor_prod(in_factors::Factor...)
 
-Sum out the variables inside `V` from factor A.
-Based on an assignment of the coursera course Probabilistic Graphical Models.
-https://www.coursera.org/learn/probabilistic-graphical-models/home/week/1
+Compute a factor product of all input factor arguments.
+
+# Examples
+```julia
+A = Factor{Float64,2}((1, 3), [0.5 0.1 0.03; 0.8 0.0 0.9])
+B = Factor{Float64,2}((1, 2), [0.5 0.1; 0.7 0.2])
+in_factors_new = prepare_factor_prod(A, B)
+C = factor_prod(in_factors_new...)
+```
+"""
+function factor_prod(in_factors::Factor{T}...) where T
+  out_factor_vals = 
+    map(in_factor -> in_factor.vals, in_factors) |>
+    in_factor_vals -> reduce((x,y) -> x .* y, in_factor_vals)
+  Factor{T, length(in_factors[1].vars)}(in_factors[1].vars, out_factor_vals)
+end
+
+# TODO: do not hardcode the Float64s
+factor_prod() = Factor{Float64, 0}((), Array{Float64,0}(undef))
+
+"""
+  prepare_factor_marg(A::FactorQ, vars::Tuple)
+
+Returns the dimensions that correspond to the summed out variables in `vars`,
+the variables (and cardinality) of the resulting factor, and the cardinality of
+the intermediary array needed to perform the sum with the builtin `sum!`
+function.
 
 # Examples
 ```julia
 A = Factor{Float64,3}((3, 2, 1), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                      [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-V = [1]
-B = marg(A, V)
-
-A = Factor{Float64,3}((2, 7, 1), cat([1 2; 3 4;  5  6],
-                                     [7 8; 9 10; 11 12], dims=3))
-V = [7]
-B = marg(A, V)
+dims, B_vars, r_card = prepare_factor_marg(A, (1,2))
 ```
 """
-function marg(A::Factor{T}, V::Vector{Int64}) where T
-  dims = indexin(V, collect(A.vars)) # map vars to dims
-  r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), length(A.vars)) # assign 1 to summed out dims
-  ret_size = filter(s -> s != 1, r_size)
-  ret_vars = filter(v -> v ∉ V, A.vars)
-  r_vals = similar(A.vals, r_size)
-  ret_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=Tuple(dims))
-  Factor{eltype(A.vals),length(ret_vars)}(ret_vars, ret_vals)
+function prepare_factor_marg(A::Factor, vars::Tuple)
+  dims = indexin(vars, collect(A.vars)) |> Tuple # map vars to dims
+  r_card = ntuple(d -> d in dims ? 1 : size(A.vals, d), length(A.vars)) # assign 1 to summed out dims
+  B_vars = filter(v -> v ∉ vars, A.vars)
+  return dims, B_vars, r_card
 end
-marg(A::Factor, V::Int) = marg(A, [V])
+
+"""
+  compute_factor_form_after_marg(A::Factor, vars::Tuple)
+
+Returns the resulting factor form after marginalizing `vars` from factor `A`.
+"""
+function compute_factor_form_after_marg(A::Factor, vars::Tuple)
+  B_vars = filter(v -> v ∉ vars, A.vars)
+  mapB = indexin(B_vars, collect(A.vars))
+  B_card = size(A.vals)[mapB]
+  Factor{eltype(A),length(B_vars)}(B_vars, zeros(eltype(A), B_card...))
+end
+
+"""
+    factor_marg(A::Factor, dims, B_vars, r_card)
+
+Sum values over each of the dimenstions in `dims`.
+
+# Examples
+```julia
+A = Factor{Float64,3}((3, 2, 1), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+dims, B_vars, r_card = prepare_factor_marg(A, (1,2))
+factor_marg(A, dims, B_vars, r_card) 
+```
+"""
+function factor_marg(A::Factor, dims, B_vars, r_card)
+  B_vals = sum!(similar(A.vals, r_card), A.vals) |> x -> dropdims(x, dims=dims)
+  Factor{eltype(A),length(B_vars)}(B_vars, B_vals)
+end
 
 """
     redu(A::Factor, var::Int64, val::Int64)

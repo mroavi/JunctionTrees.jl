@@ -7,8 +7,10 @@ import Base:
 
 export computeMarginalsExpr,
   Factor,
-  product,
-  marg,
+  prepare_factor_prod,
+  factor_prod,
+  prepare_factor_marg,
+  factor_marg,
   redu,
   norm
 
@@ -104,8 +106,8 @@ end
 # problem = "Promedus_11"
 # problem = "Promedus_26"
 # problem = "01-example-paskin"
-# problem = "03-merlin-simple6"
-problem = "05-mrv"
+problem = "03-merlin-simple6"
+# problem = "05-mrv"
 
 problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"/")
 
@@ -197,7 +199,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     @assert nv(g) == bag_id
 
     # Store the variables the bag (cluster) depends on in a property
-    bag_vertices = bag_arr[3:end] |> x -> parse.(Int, x)
+    bag_vertices = bag_arr[3:end] |> x -> parse.(Int, x) |> Tuple
     set_prop!(g, bag_id, :vars, bag_vertices)
 
     # Mark bags (clusters) that contain at least one observed var
@@ -340,16 +342,21 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # ==============================================================================
 
   for bag in vertices(g)
-    potential = get_prop(g, bag, :factors) |> product
+    potential = 
+      get_prop(g, bag, :factors) |> 
+      x -> prepare_factor_prod(x...) |>
+      x -> factor_prod(x...)
     set_prop!(g, bag, :potential, potential)
   end
 
-  # # DEBUG
-  # map(vertex -> (vertex, get_prop(g, vertex, :potential)), vertices(g)) # potential of each bag
+  # DEBUG
+  map(vertex -> (vertex, get_prop(g, vertex, :potential)), vertices(g)) # potential of each bag
 
   # ==============================================================================
   # # Compute the upstream message
   # ==============================================================================
+
+  msgs_form = Dict{String, Factor}()
 
   # Visit each bag in postorder and compute its upstream message
   for bag in PostOrderDFS(root)
@@ -373,17 +380,20 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
         children_ids -> map(child_id -> get_prop(g, child_id, bag.id, :up_msg), children_ids) |>
         in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) |> # get the msg variable name from Expr
         in_msgs_var_names -> vcat(in_msgs_var_names, potential) |> # concat in msgs and potential
-        in_msgs_and_potential -> :(product($(in_msgs_and_potential...))) #splatting interpol
+        in_msgs_and_potential -> prepare_factor_prod(in_msgs_and_potential...) |>
+        in_msgs_and_potential -> :(factor_prod($(in_msgs_and_potential...))) #splatting interpol
     end
 
     # Get the variables that need to be marginalized
     bag_vars = get_prop(g, bag.id, :vars)
     out_edge_sepset = get_prop(g, bag.id, parent_bag.id, :sepset)
-    mar_vars = setdiff(bag_vars, out_edge_sepset)
+    mar_vars = setdiff(bag_vars, out_edge_sepset) |> Tuple
 
     # Marginalize vars to compute the upstream message
     msg_var_name = Symbol("msg_", bag.id, "_", parent_bag.id)
-    up_msg = :($msg_var_name = marg($joint, $mar_vars))
+    up_msg = 
+      prepare_factor_marg(joint, mar_vars) |>
+      ((dims, res_vars, r_card),) -> :($msg_var_name = factor_marg($joint, $dims, $res_vars, $r_card))
 
     # # ----------------------------- PARTIAL EVALUATION ------------------------
     # # Does the subtree with the current bag as root have any bag with an observed var?
@@ -402,8 +412,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     # Push the current up message expression to the algo expression
     push!(algo.args, up_msg)
 
-    # # DEBUG
-    # println(up_msg)
+    # DEBUG
+    println(up_msg)
 
   end
 
@@ -416,7 +426,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # @btime eval(algo) 
 
   # ==============================================================================
-  # # Compute the downstream messages
+  ## Compute the downstream messages
   # ==============================================================================
 
   # Visit each bag in preorder and compute the messages through all edges other
@@ -441,14 +451,17 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
         # current bag has parent, current child has no sibling(s)
         parent_msg = get_prop(g, parent_node.id, bag.id, :down_msg) |> # get down msg from prop
           down_msg -> down_msg.args[1] # get the msg variable name
-        joint = :(product($parent_msg, $potential))
+        joint = 
+          prepare_factor_prod(parent_msg, potential) |>
+          parent_msg_and_potential -> :(factor_prod($(parent_msg_and_potential)...))
       elseif isnothing(parent_node) && !isempty(siblings)
         # current bag has no parent, current child has sibling(s)
         joint =
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names from Exprs
           sibling_msgs_var_names -> vcat(sibling_msgs_var_names, potential) |> # concat sibling msgs and potential
-          sibling_msgs_and_potential -> :(product($(sibling_msgs_and_potential...)))
+          sibling_msgs_and_potential -> prepare_factor_prod(sibling_msgs_and_potential...) |>
+          sibling_msgs_and_potential -> :(factor_prod($(sibling_msgs_and_potential...)))
       else
         # current bag has parent, current child has sibling(s)
         parent_msg = get_prop(g, parent_node.id, bag.id, :down_msg)
@@ -456,7 +469,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names
           sibling_msgs_var_names -> vcat(sibling_msgs_var_names, parent_msg.args[1], potential) |> # concat all factors
-          all_factors -> :(product($(all_factors...)))
+          all_factors -> prepare_factor_prod(all_factors...) |>
+          all_factors -> :(factor_prod($(all_factors...)))
       end
 
       # Get the variables that need to be marginalized
@@ -466,7 +480,9 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
       # Marginalize vars
       msg_var_name = Symbol("msg_", bag.id, "_", child.id)
-      down_msg = :($msg_var_name = marg($joint, $mar_vars))
+      down_msg = 
+        prepare_factor_marg(joint, mar_vars) |>
+        ((dims, res_vars, r_card),) -> :($msg_var_name = factor_marg($joint, $dims, $res_vars, $r_card))
 
       # Set the resulting factor, the downstream message, as an edge property
       set_prop!(g, bag.id, child.id, :down_msg, down_msg)
@@ -512,7 +528,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
     bag_marginals[bag.id] =
       vcat(in_msgs_var_names, potential) |>
-      x -> :($bag_mar_var_name = product($(x...)))
+      x -> prepare_factor_prod(x...) |>
+      x -> :($bag_mar_var_name = factor_prod($(x...)))
   end
 
   # Push each bag marginal expression to the algo expression
@@ -544,9 +561,10 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       isassigned(unnormalized_marginals, var) && continue
       mar_vars = setdiff(bag_vars, var)
       unnorm_mar_var_name = Symbol("unnorm_mar_", var)
+      bag_mar_var_name = bag_marginals[bag_id].args[1]
       unnormalized_marginals[var] = 
-        bag_marginals[bag_id].args[1] |>
-        bag_mar_var_name -> :($unnorm_mar_var_name = marg($bag_mar_var_name, $mar_vars))
+        prepare_factor_marg(bag_mar_var_name, mar_vars) |>
+        ((dims, res_vars, r_card),) -> :($unnorm_mar_var_name = factor_marg($bag_mar_var_name, $dims, $res_vars, $r_card))
     end
   end
 
