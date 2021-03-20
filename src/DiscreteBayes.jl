@@ -383,7 +383,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
     # Marginalize vars to compute the upstream message
     msg_var_name = Symbol("msg_", bag.id, "_", parent_bag.id)
-    up_msg = :($msg_var_name = marg($joint, $mar_vars))
+    up_msg = :($msg_var_name = marg($joint, $(mar_vars...)))
 
     # # ----------------------------- PARTIAL EVALUATION ------------------------
     # # Does the subtree with the current bag as root have any bag with an observed var?
@@ -466,7 +466,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
       # Marginalize vars
       msg_var_name = Symbol("msg_", bag.id, "_", child.id)
-      down_msg = :($msg_var_name = marg($joint, $mar_vars))
+      down_msg = :($msg_var_name = marg($joint, $(mar_vars...)))
 
       # Set the resulting factor, the downstream message, as an edge property
       set_prop!(g, bag.id, child.id, :down_msg, down_msg)
@@ -546,7 +546,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       unnorm_mar_var_name = Symbol("unnorm_mar_", var)
       unnormalized_marginals[var] = 
         bag_marginals[bag_id].args[1] |>
-        bag_mar_var_name -> :($unnorm_mar_var_name = marg($bag_mar_var_name, $mar_vars))
+        bag_mar_var_name -> :($unnorm_mar_var_name = marg($bag_mar_var_name, $(mar_vars...)))
     end
   end
 

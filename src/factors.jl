@@ -2,9 +2,9 @@
 A composite type that implements the factor datatype.
 """
 
-mutable struct Factor{T, N}
+mutable struct Factor{T,N}
   vars::NTuple{N,Int64}
-  vals::Array{T,N}
+  vals::Array{T}
 end
 
 import Base: eltype
@@ -30,13 +30,17 @@ function product(A::Factor{T}, B::Factor{T}) where T
   C_vars = union(A.vars, B.vars) |> sort
   A_card_new = ones(Int64, length(C_vars))
   B_card_new = ones(Int64, length(C_vars))
-  for (i,c_var) in enumerate(C_vars)
-    c_var in A.vars && (A_card_new[i] = popfirst!(A_card))
-    c_var in B.vars && (B_card_new[i] = popfirst!(B_card))
+  for (i,C_var) in enumerate(C_vars)
+    C_var in A.vars && (A_card_new[i] = popfirst!(A_card))
+    C_var in B.vars && (B_card_new[i] = popfirst!(B_card))
   end
   A_vals_new = reshape(A.vals, Tuple(A_card_new))
   B_vals_new = reshape(B.vals, Tuple(B_card_new))
-  Factor{Float64, length(C_vars)}(Tuple(C_vars), A_vals_new .* B_vals_new)
+  _product(A_vals_new, B_vals_new, Tuple(C_vars))
+end
+
+function _product(A_vals_new, B_vals_new, C_vars)
+  Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
 end
 
 function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
@@ -46,11 +50,9 @@ end
 product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
 
 """
-    marg(A::Factor, V::Vector{Int64})
+    marg(A::Factor, V::Ntuple{N,Int64})
 
 Sum out the variables inside `V` from factor A.
-Based on an assignment of the coursera course Probabilistic Graphical Models.
-https://www.coursera.org/learn/probabilistic-graphical-models/home/week/1
 
 # Examples
 ```julia
@@ -65,16 +67,34 @@ V = [7]
 B = marg(A, V)
 ```
 """
-function marg(A::Factor{T}, V::Vector{Int64}) where T
-  dims = indexin(V, collect(A.vars)) # map vars to dims
-  r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), length(A.vars)) # assign 1 to summed out dims
-  ret_size = filter(s -> s != 1, r_size)
-  ret_vars = filter(v -> v ∉ V, A.vars)
+function marg(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
+  dims = my_indexin(V, A.vars) # map vars to dims
+  r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
+  ret_vars = filter(!in(V), A.vars)
   r_vals = similar(A.vals, r_size)
-  ret_vals = sum!(r_vals, A.vals) |> x -> dropdims(x, dims=Tuple(dims))
-  Factor{eltype(A.vals),length(ret_vars)}(ret_vars, ret_vals)
+  _marg(r_vals, ret_vars, A.vals,dims)
 end
-marg(A::Factor, V::Int) = marg(A, [V])
+marg(A::Factor, V::Int...) = marg(A, V)
+
+function my_indexin(x,y)
+  indxs = Vector{eltype(x)}(undef, length(x))
+  curr = 1
+  for xval in x 
+    for (j, yval) in pairs(y)
+      if yval == xval
+        indxs[curr] = j
+        curr += 1
+        break
+      end
+    end
+  end
+  indxs
+end
+
+function _marg(r_vals,ret_vars,Avals,dims)
+  ret_vals = sum!(r_vals, Avals) |> x -> dropdims(x, dims=Tuple(dims))
+  Factor{eltype(Avals),length(ret_vars)}(ret_vars, ret_vals)
+end
 
 """
     redu(A::Factor, var::Int64, val::Int64)
