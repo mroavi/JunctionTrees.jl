@@ -309,7 +309,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
   # ==============================================================================
-  # Assign each factor to a cluster
+  # # Assign each factor to a cluster
   # ==============================================================================
 
   # Construct an abstract tree using AbstractTrees.jl
@@ -340,7 +340,12 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # ==============================================================================
 
   for bag in vertices(g)
-    potential = get_prop(g, bag, :factors) |> product
+    bag_factors = get_prop(g, bag, :factors)
+    if isempty(bag_factors)
+      potential = Factor{Float64,0}((), Array{Float64,0}(undef))
+    else
+      potential = product(bag_factors...)
+    end
     set_prop!(g, bag, :potential, potential)
   end
 

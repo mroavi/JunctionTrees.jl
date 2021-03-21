@@ -43,11 +43,9 @@ function _product(A_vals_new, B_vals_new, C_vars)
   Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
 end
 
-function product(F::AbstractArray{<:Factor{T,N} where N, 1}) where T
+function product(F::Vararg{Factor{T}}) where T
   reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
 end
-
-product(F::Factor{T}...) where {T} = product(Factor{T}[F...])
 
 """
     marg(A::Factor, V::Ntuple{N,Int64})

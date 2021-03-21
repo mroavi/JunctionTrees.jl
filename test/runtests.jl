@@ -36,12 +36,6 @@ using Test
   @test C.vars == ()
   @test ndims(C.vals) == 0
 
-  A = Factor{Float64,1}((1,), [0.11; 0.89])
-  B = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
-  C = product([A, B])
-  @test C.vars == (1, 2)
-  @test C.vals ≈ [0.0649 0.0451; 0.1958 0.6942]
-
   # Factor marginalization
 
   A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
