@@ -4,16 +4,16 @@ A composite type that implements the factor datatype.
 
 mutable struct Factor{T,N}
   vars::NTuple{N,Int64}
-  vals::Array{T}
+  vals::Array{T,N}
 end
 
 import Base: eltype
 eltype(::Factor{T,N}) where {T,N} = T 
 
 """
-    product(A::Factor, B::Factor)
+    product(in_factors::Factor{T}...) where T
 
-Compute a factor product of tables `A` and `B`.
+Compute a factor product of all tables contained in `in_factors`.
 
 # Examples
 ```julia
@@ -22,29 +22,26 @@ B = Factor{Float64,2}((3, 2), [0.5 0.1; 0.7 0.2])
 C = product(A, B)
 ```
 """
-function product(A::Factor{T}, B::Factor{T}) where T
-  isempty(A.vars) && return Factor(B.vars, B.vals)
-  isempty(B.vars) && return Factor(A.vars, A.vals)
-  A_card = collect(size(A.vals))
-  B_card = collect(size(B.vals))
-  C_vars = union(A.vars, B.vars) |> sort
-  A_card_new = ones(Int64, length(C_vars))
-  B_card_new = ones(Int64, length(C_vars))
-  for (i,C_var) in enumerate(C_vars)
-    C_var in A.vars && (A_card_new[i] = popfirst!(A_card))
-    C_var in B.vars && (B_card_new[i] = popfirst!(B_card))
+
+function product(in_factors::Factor{T}...) where T
+  in_factors_card = map(x -> collect(size(x.vals)), in_factors)
+  out_factor_vars = map(x -> x.vars, in_factors) |> x -> union(x...) |> sort |> Tuple
+  in_factors_card_new = map(x -> ones(Int64, length(out_factor_vars)), in_factors)
+  for (i, out_factor_var) in enumerate(out_factor_vars)
+    for (j, in_factor_vars) in enumerate(map(x -> x.vars, in_factors))
+      out_factor_var in in_factor_vars && (in_factors_card_new[j][i] = popfirst!(in_factors_card[j]))
+    end
   end
-  A_vals_new = reshape(A.vals, Tuple(A_card_new))
-  B_vals_new = reshape(B.vals, Tuple(B_card_new))
-  _product(A_vals_new, B_vals_new, Tuple(C_vars))
+  in_factors_vals = map(in_factor -> in_factor.vals, in_factors)
+  in_factors_vals_new = map((x, y) -> reshape(x, Tuple(y)), in_factors_vals, in_factors_card_new)
+  out_factor_card = hcat(in_factors_card_new...) |> x -> maximum(x, dims=2)
+  out_factor_new = Factor{T, length(out_factor_vars)}(out_factor_vars, zeros(out_factor_card...))
+  _product!(out_factor_new, in_factors_vals_new)
+  return out_factor_new
 end
 
-function _product(A_vals_new, B_vals_new, C_vars)
-  Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
-end
-
-function product(F::Vararg{Factor{T}}) where T
-  reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
+function _product!(out_factor, in_factors_vals)
+  out_factor.vals .= .*(in_factors_vals...)
 end
 
 """

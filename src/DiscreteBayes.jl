@@ -101,6 +101,7 @@ end
 
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
+Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
 # problem = "Promedus_11"
 # problem = "Promedus_26"
 # problem = "01-example-paskin"
@@ -342,7 +343,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   for bag in vertices(g)
     bag_factors = get_prop(g, bag, :factors)
     if isempty(bag_factors)
-      potential = Factor{Float64,0}((), Array{Float64,0}(undef))
+      potential = Factor{Float64,0}((), [1.0])
     else
       potential = product(bag_factors...)
     end
