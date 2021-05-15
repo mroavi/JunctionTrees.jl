@@ -431,7 +431,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   #   x -> println("\nForward pass visiting order: \n", x)
 
   # ==============================================================================
-  # Initialize the downstream messages
+  # # Initialize the downstream messages
   # ==============================================================================
 
   # Visit each bag in preorder and initialize the messages through all edges other
@@ -788,14 +788,22 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
 ;
   # ==============================================================================
-  ## Common subexpression elimination
+  # # Common subexpression elimination
   # ==============================================================================
   # algo_cse = CommonSubexpressions.binarize(run_expr) |> cse
 
   # # DEBUG
   # print(algo_cse)
 ;
-  ##
+
+  # Create a tuple of the initialized var names to be returned and push it to the init expr
+  init_var_names = Vector{Symbol}()
+  map(expr -> expr.args[1].args, init_expr.args[2:end]) |> # extract LHS of assignment exprs
+    lhs_init_var_names -> vcat(lhs_init_var_names...) |> # flatten vector of vectors to one vector
+    init_var_names_any -> map(y -> push!(init_var_names, y), init_var_names_any) # push to Sym typed vec
+
+  # Push a return expression with all variables names to the init expr
+  :(return ($(init_var_names...),)) |> ret_expr -> push!(init_expr.args, ret_expr)
 
   function_name = :init_algo
   sig = ()
@@ -805,14 +813,15 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   init_function_expr = generate_function_expression(function_name, sig, variables, body)
 
   function_name = :run_algo
-  sig = ()
-  variables = []
+  sig = map(x -> Any, init_var_names)
+  variables = init_var_names
   body = run_expr
 
   run_function_expr = generate_function_expression(function_name, sig, variables, body)
 
   return init_function_expr, run_function_expr
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
+  ##
 end
 
 end # module

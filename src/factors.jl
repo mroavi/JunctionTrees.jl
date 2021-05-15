@@ -4,7 +4,7 @@ A composite type that implements the factor datatype.
 
 mutable struct Factor{T,N}
   vars::NTuple{N,Int64}
-  vals::Array{T,N}
+  vals::Array{T}
 end
 
 import Base: eltype
