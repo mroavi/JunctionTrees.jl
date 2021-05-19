@@ -531,9 +531,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # ==============================================================================
 
   # Traverse bags in ascending order according to their number of vars
-  nvars_per_bag = map(bag_id -> length(get_prop(g, bag_id, :vars)), 1:nbags)
-  bag_traversal_order = sort(nvars_per_bag) |> x -> indexin(x, nvars_per_bag)
-
   bag_traversal_order =
     map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nbags) |>
     x -> sort(x, by=y -> y[end]) |>

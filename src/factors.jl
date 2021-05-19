@@ -2,9 +2,9 @@
 A composite type that implements the factor datatype.
 """
 
-mutable struct Factor{T,N}
+struct Factor{T,N}
   vars::NTuple{N,Int64}
-  vals::Array{T}
+  vals::Array{T,N}
 end
 
 import Base: eltype
