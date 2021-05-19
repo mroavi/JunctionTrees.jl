@@ -101,6 +101,9 @@ end
 
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
+
+Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
+
 # problem = "Promedus_11"
 # problem = "Promedus_26"
 # problem = "01-example-paskin"
@@ -346,11 +349,15 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     else
       potential = product(bag_factors...)
     end
-    set_prop!(g, bag, :potential, potential)
+    pot_var_name = Symbol("pot_", bag)
+    push!(algo.args, :($pot_var_name = $potential))
   end
 
   # # DEBUG
   # map(vertex -> (vertex, get_prop(g, vertex, :potential)), vertices(g)) # potential of each bag
+
+  # # DEBUG
+  # println(algo)
 
   # ==============================================================================
   # # Compute the upstream message
@@ -366,18 +373,18 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     isnothing(parent_bag) && break
 
     # Compute the joint distribution of all incoming messages and the potential
-    potential = get_prop(g, bag.id, :potential)
+    pot_var_name = Symbol("pot_", bag.id)
     # Is this bag a leaf?
     if isempty(bag.children)
       # Yes, then only extract the potential
-      joint = potential
+      joint = pot_var_name
     else
       # No, then construct an expr of the factor product between incomming msgs and potential
       joint =
         map(child -> child.id, bag.children) |> # get the children ids of the current bag
         children_ids -> map(child_id -> get_prop(g, child_id, bag.id, :up_msg), children_ids) |>
         in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) |> # get the msg variable name from Expr
-        in_msgs_var_names -> vcat(in_msgs_var_names, potential) |> # concat in msgs and potential
+        in_msgs_var_names -> vcat(in_msgs_var_names, pot_var_name) |> # concat in msgs and pot
         in_msgs_and_potential -> :(product($(in_msgs_and_potential...))) #splatting interpol
     end
 
@@ -416,6 +423,9 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # map(bag -> bag.id , PostOrderDFS(root)) |> 
   #   x -> println("\nForward pass visiting order: \n", x)
 
+  # # DEBUG
+  # println(algo)
+
   # DEBUG
   # @time eval(algo) 
   # @btime eval(algo) 
@@ -435,24 +445,24 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     for child in bag.children
 
       # Compute joint btwn the incoming msgs (coming from parent and siblings) and bag's potential
-      potential = get_prop(g, bag.id, :potential)
+      pot_var_name = Symbol("pot_", bag.id)
       siblings = setdiff(bag.children, [child]) # get a list of the siblings (all other children)
 
       # Four possible scenarios:
       if isnothing(parent_node) && isempty(siblings)
         # current bag has no parent, current child has no sibling(s)
-        joint = potential
+        joint = pot_var_name
       elseif !isnothing(parent_node) && isempty(siblings)
         # current bag has parent, current child has no sibling(s)
         parent_msg = get_prop(g, parent_node.id, bag.id, :down_msg) |> # get down msg from prop
           down_msg -> down_msg.args[1] # get the msg variable name
-        joint = :(product($parent_msg, $potential))
+        joint = :(product($parent_msg, $pot_var_name))
       elseif isnothing(parent_node) && !isempty(siblings)
         # current bag has no parent, current child has sibling(s)
         joint =
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names from Exprs
-          sibling_msgs_var_names -> vcat(sibling_msgs_var_names, potential) |> # concat sibling msgs and potential
+          sibling_msgs_var_names -> vcat(sibling_msgs_var_names, pot_var_name) |> # concat sibling msgs and potential
           sibling_msgs_and_potential -> :(product($(sibling_msgs_and_potential...)))
       else
         # current bag has parent, current child has sibling(s)
@@ -460,7 +470,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
         joint =
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names
-          sibling_msgs_var_names -> vcat(sibling_msgs_var_names, parent_msg.args[1], potential) |> # concat all factors
+          sibling_msgs_var_names -> vcat(sibling_msgs_var_names, parent_msg.args[1], pot_var_name) |> # concat all factors
           all_factors -> :(product($(all_factors...)))
       end
 
@@ -493,6 +503,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # map(bag -> bag.id , PreOrderDFS(root)) |> 
   #   x -> println("Backward pass visiting order: \n", x)
 
+  # println(algo)
+
   # ==============================================================================
   # # Compute bag marginals
   # ==============================================================================
@@ -504,7 +516,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # TODO: Compute marginals more efficiently: extract them from sepsets, not from bags
   for bag in PostOrderDFS(root)
     # Bag marginal expression
-    potential = get_prop(g, bag.id, :potential)
+    pot_var_name = Symbol("pot_", bag.id)
 
     in_msgs_var_names =
       get_prop(g, bag.id, :in_msgs) |>
@@ -516,12 +528,15 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     bag_mar_var_name = Symbol("mar_bag_", bag.id)
 
     bag_marginals[bag.id] =
-      vcat(in_msgs_var_names, potential) |>
+      vcat(in_msgs_var_names, pot_var_name) |>
       x -> :($bag_mar_var_name = product($(x...)))
   end
 
   # Push each bag marginal expression to the algo expression
   map(bag_marginal -> push!(algo.args, bag_marginal), bag_marginals)
+
+  # # DEBUG
+  # println(algo)
 
   # # DEBUG
   # map(bag_marginal -> println(bag_marginal), bag_marginals)
@@ -565,13 +580,20 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
   push!(algo.args, normalize_marginals_expr)
 
+  # # DEBUG
+  # println(algo)
+
+  # # DEBUG
+  # @btime eval(algo)
+
   # ==============================================================================
   # # Common subexpression elimination
   # ==============================================================================
   # algo_cse = CommonSubexpressions.binarize(algo) |> cse
 
   # # DEBUG
-  # print(algo_cse)
+  # println(algo_cse)
+
 ;
   ##
 
