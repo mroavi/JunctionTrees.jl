@@ -12,13 +12,13 @@ export computeMarginalsExpr,
   redu,
   norm
 
-using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays
+using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays, MacroTools
 
 include("factors.jl")
 include("tree.jl")
 
 """
-    constructTreeDecompositionAbstractTree!(g, root)
+    constructTreeDecompositionAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
 
 Construct a tree decomposition abstract tree based on the graph `g` using
 `root` as the root node.
@@ -33,7 +33,7 @@ constructTreeDecompositionAbstractTree!(g, root)
 print_tree(root)
 ```
 """
-function constructTreeDecompositionAbstractTree!(g, root, parent=root)
+function constructTreeDecompositionAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
 
   # Is the parent node the root?
   if root === parent
@@ -56,12 +56,12 @@ function constructTreeDecompositionAbstractTree!(g, root, parent=root)
 end
 
 """
-    hasObservedNode(g, root)
+    hasObservedNode(g::MetaGraph, root::Node)
 
     Returns a boolean stating whether the input (sub)tree has at least one observed
     node.
 """
-function hasObservedNode(g, root)
+function hasObservedNode(g::MetaGraph, root::Node)
 
   for node in PostOrderDFS(root)
     has_prop(g, node.id, :isobserved) && return true
@@ -69,6 +69,20 @@ function hasObservedNode(g, root)
 
   return false
 
+end
+
+"""
+    getNode(root::Node, node_id::Int)
+
+    Returns the `Node` object that has `node_id` in its `id` field.
+"""
+function getNode(root::Node, node_id::Int)
+
+  for node in PostOrderDFS(root)
+    node.id == node_id && return node
+  end
+
+  return nothing
 end
 
 """
@@ -104,15 +118,19 @@ end
 
 Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
 
+# using Printf
+# Base.show(io::IO, f::Float64) = @printf io "%1.2f" f
+
 # problem = "Promedus_11"
+problem = "Promedus_24"
 # problem = "Promedus_26"
 # problem = "01-example-paskin"
 # problem = "03-merlin-simple6"
-problem = "05-mrv"
+# problem = "05-mrv"
 
 problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"/")
 
-td_filepath = problem_dir*problem*".td"
+td_filepath = problem_dir*problem*".merlin.td"
 uai_filepath = problem_dir*problem*".uai"
 uai_evid_filepath = problem_dir*problem*".uai.evid"
 # -----------------------------------------------------------------------------
@@ -144,10 +162,7 @@ g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
 """
 function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
-  ## Empty expression the will be filled with nested expressions that compute all marginals
-  algo = quote end
-
-  # Read the td file into an array of lines
+  ## Read the td file into an array of lines
   rawlines = open(td_filepath) do file
     readlines(file)
   end
@@ -342,6 +357,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # Compute potentials for each bag and store them in a bag property
   # ==============================================================================
 
+  potentials = quote end
+
   for bag in vertices(g)
     bag_factors = get_prop(g, bag, :factors)
     if isempty(bag_factors)
@@ -350,7 +367,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       potential = product(bag_factors...)
     end
     pot_var_name = Symbol("pot_", bag)
-    push!(algo.args, :($pot_var_name = $potential))
+    push!(potentials.args, :($pot_var_name = $potential))
   end
 
   # # DEBUG
@@ -362,6 +379,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # ==============================================================================
   # # Compute the upstream message
   # ==============================================================================
+
+  forward_pass = quote end
 
   # Visit each bag in postorder and compute its upstream message
   for bag in PostOrderDFS(root)
@@ -397,14 +416,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     msg_var_name = Symbol("msg_", bag.id, "_", parent_bag.id)
     up_msg = :($msg_var_name = marg($joint, $(mar_vars...)))
 
-    # # ----------------------------- PARTIAL EVALUATION ------------------------
-    # # Does the subtree with the current bag as root have any bag with an observed var?
-    # if hasObservedNode(g, bag)
-    #   # Yes, the evaluate the upstream message
-    #   up_msg = eval(up_msg)
-    # end
-    # # -------------------------------------------------------------------------
-
     # Set the resulting factor, the upstream message, as an edge property
     set_prop!(g, bag.id, parent_bag.id, :up_msg, up_msg)
 
@@ -412,7 +423,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     push!(get_prop(g, parent_bag.id, :in_msgs), up_msg)
 
     # Push the current up message expression to the algo expression
-    push!(algo.args, up_msg)
+    push!(forward_pass.args, up_msg)
 
     # # DEBUG
     # println(up_msg)
@@ -424,15 +435,55 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   #   x -> println("\nForward pass visiting order: \n", x)
 
   # # DEBUG
-  # println(algo)
+  # @show forward_pass
+
+  # ----------------------------- PARTIAL EVALUATION --------------------------
+  eval(potentials)
+
+  # Pass 1: constant message folding (eval constant messages)
+  forward_pass_1 = quote end
+  msgs_evaled = Symbol[]
+  for ex in forward_pass.args
+    if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
+      bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get bag id from msg var
+      node = getNode(root, bag) # get tree node using bag id
+      msg = :($var = $f($(args...))) # reconstruct the message assignment
+      if !hasObservedNode(g, node) # is there no observed var in the (sub)tree below curr node?
+        msg_evaled = eval(msg) # no, then evaluate the message
+        push!(forward_pass_1.args, :($var = $msg_evaled)) # and add it to the new expr
+        # push!(msgs_evaled, var) # save the evaled msg name
+      else
+        push!(forward_pass_1.args, msg) # yes, then add the unmodified msg to the new expr
+      end
+    end
+  end
+
+  # # Pass 2: filter evaled messages
+  # # Filter out evaluated messages (based on implementation of `rmlines(x)` in MacroTools.jl)
+  # forward_pass_2 = filter(forward_pass_1.args) do x
+  #   !@capture(x, var_ = factor_Factor) # capture exprs of this type: msg = Factor...
+  # end |> x -> Expr(forward_pass_1.head, x...)
+
+  # # Pass 3: constant message propagation
+  # forward_pass_3 = MacroTools.postwalk(forward_pass_2) do x
+  #   if x in msgs_evaled
+  #     factor = eval(x)
+  #     return :($factor)
+  #   end
+  #   return x
+  # end
+
+  # ---------------------------------------------------------------------------
 
   # DEBUG
-  # @time eval(algo) 
-  # @btime eval(algo) 
+  # @time eval(forward_pass_3) 
+  # @btime eval(forward_pass_3) 
 
   # ==============================================================================
   # # Compute the downstream messages
   # ==============================================================================
+
+  backward_pass = quote end
 
   # Visit each bag in preorder and compute the messages through all edges other
   # than the one connecting it to the parent
@@ -489,8 +540,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       # Store the message in childs's incoming messages array
       push!(get_prop(g, child.id, :in_msgs), down_msg)
 
-      # Push the up message expression to the algo expression
-      push!(algo.args, down_msg)
+      # Push the up message expression to the backward pass expression
+      push!(backward_pass.args, down_msg)
 
       # # DEBUG
       # println(down_msg)
@@ -503,7 +554,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # map(bag -> bag.id , PreOrderDFS(root)) |> 
   #   x -> println("Backward pass visiting order: \n", x)
 
-  # println(algo)
+  # println(backward_pass)
 
   # ==============================================================================
   # # Compute bag marginals
@@ -531,12 +582,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
       vcat(in_msgs_var_names, pot_var_name) |>
       x -> :($bag_mar_var_name = product($(x...)))
   end
-
-  # Push each bag marginal expression to the algo expression
-  map(bag_marginal -> push!(algo.args, bag_marginal), bag_marginals)
-
-  # # DEBUG
-  # println(algo)
 
   # # DEBUG
   # map(bag_marginal -> println(bag_marginal), bag_marginals)
@@ -567,9 +612,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
     end
   end
 
-  # Push each unnormalized marginal expression to the algo expression
-  map(x -> push!(algo.args, x), unnormalized_marginals)
-
   # # DEBUG
   # map(unnormalized_marginal -> println(unnormalized_marginal), unnormalized_marginals)
 
@@ -577,14 +619,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   normalize_marginals_expr =
     map(x -> x.args[1], unnormalized_marginals) |> # get the variable name
     x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
-
-  push!(algo.args, normalize_marginals_expr)
-
-  # # DEBUG
-  # println(algo)
-
-  # # DEBUG
-  # @btime eval(algo)
 
   # ==============================================================================
   # # Common subexpression elimination
@@ -596,6 +630,21 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 
 ;
   ##
+
+  # Concatenate the different expressions corresponding to the steps of the 
+  algo = Expr(:block, vcat(potentials.args,
+                           forward_pass_1.args,
+                           backward_pass.args,
+                           bag_marginals,
+                           unnormalized_marginals,
+                           normalize_marginals_expr,
+                          )...)
+
+  # # DEBUG
+  # println(algo)
+
+  # # DEBUG
+  # @btime eval(algo)
 
   function_name = :compute_marginals
   sig = ()
