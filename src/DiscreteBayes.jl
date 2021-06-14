@@ -12,6 +12,8 @@ export computeMarginalsExpr,
   redu,
   norm
 
+export LastStage, ForwardPass, BackwardPass, BagMarginals, UnnormalizedMarginals, Marginals
+
 using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays, MacroTools
 
 include("factors.jl")
@@ -116,7 +118,7 @@ end
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
 
-Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
+# Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
 
 # using Printf
 # Base.show(io::IO, f::Float64) = @printf io "%1.2f" f
@@ -136,8 +138,13 @@ uai_evid_filepath = problem_dir*problem*".uai.evid"
 # -----------------------------------------------------------------------------
 
 ##
+
+@enum LastStage ForwardPass BackwardPass BagMarginals UnnormalizedMarginals Marginals
+
 """
-    computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
+    computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
+                         partial_evaluation = false,
+                         last_stage::LastStage = Marginals)
 
 Construct a tree decomposition graph based on `td_filepath`.
 Assign the factor tables defined in `uai_filepath` to one bag (cluster)
@@ -160,7 +167,9 @@ uai_evid_filepath = "../problems/Promedus_26/Promedus_26.evid"
 g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
 ```
 """
-function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
+function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath; 
+                              partial_evaluation = false,
+                              last_stage::LastStage = Marginals)
 
   ## Read the td file into an array of lines
   rawlines = open(td_filepath) do file
@@ -376,6 +385,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # # DEBUG
   # println(algo)
 
+  # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
+
   # ==============================================================================
   # # Compute the upstream message
   # ==============================================================================
@@ -437,47 +448,55 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
   # # DEBUG
   # @show forward_pass
 
-  # ----------------------------- PARTIAL EVALUATION --------------------------
-  eval(potentials)
+  # ------------------------------------------------------------------------------
+  # # Partial Evaluation
+  # ------------------------------------------------------------------------------
+  if(partial_evaluation)
 
-  # Pass 1: constant message folding (eval constant messages)
-  forward_pass_1 = quote end
-  msgs_evaled = Symbol[]
-  for ex in forward_pass.args
-    if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
-      bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get bag id from msg var
-      node = getNode(root, bag) # get tree node using bag id
-      msg = :($var = $f($(args...))) # reconstruct the message assignment
-      if !hasObservedNode(g, node) # is there no observed var in the (sub)tree below curr node?
-        msg_evaled = eval(msg) # no, then evaluate the message
-        push!(forward_pass_1.args, :($var = $msg_evaled)) # and add it to the new expr
-        # push!(msgs_evaled, var) # save the evaled msg name
-      else
-        push!(forward_pass_1.args, msg) # yes, then add the unmodified msg to the new expr
+    eval(potentials)
+
+    # Pass 1: constant message folding (eval constant messages)
+    forward_pass_1 = quote end
+    msgs_evaled = Symbol[]
+    for ex in forward_pass.args
+      if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
+        bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get bag id from msg var
+        node = getNode(root, bag) # get tree node using bag id
+        msg = :($var = $f($(args...))) # reconstruct the message assignment
+        if !hasObservedNode(g, node) # is there no observed var in the (sub)tree below curr node?
+          msg_evaled = eval(msg) # no, then evaluate the message
+          push!(forward_pass_1.args, :($var = $msg_evaled)) # and add it to the new expr
+          # push!(msgs_evaled, var) # save the evaled msg name
+        else
+          push!(forward_pass_1.args, msg) # yes, then add the unmodified msg to the new expr
+        end
       end
     end
+
+    # # Pass 2: filter evaled messages
+    # # Filter out evaluated messages (based on implementation of `rmlines(x)` in MacroTools.jl)
+    # forward_pass_2 = filter(forward_pass_1.args) do x
+    #   !@capture(x, var_ = factor_Factor) # capture exprs of this type: msg = Factor...
+    # end |> x -> Expr(forward_pass_1.head, x...)
+
+    # # Pass 3: constant message propagation
+    # forward_pass_3 = MacroTools.postwalk(forward_pass_2) do x
+    #   if x in msgs_evaled
+    #     factor = eval(x)
+    #     return :($factor)
+    #   end
+    #   return x
+    # end
+
+    # # DEBUG
+    # @time eval(forward_pass_3) 
+    # @btime eval(forward_pass_3) 
+
   end
 
-  # # Pass 2: filter evaled messages
-  # # Filter out evaluated messages (based on implementation of `rmlines(x)` in MacroTools.jl)
-  # forward_pass_2 = filter(forward_pass_1.args) do x
-  #   !@capture(x, var_ = factor_Factor) # capture exprs of this type: msg = Factor...
-  # end |> x -> Expr(forward_pass_1.head, x...)
-
-  # # Pass 3: constant message propagation
-  # forward_pass_3 = MacroTools.postwalk(forward_pass_2) do x
-  #   if x in msgs_evaled
-  #     factor = eval(x)
-  #     return :($factor)
-  #   end
-  #   return x
-  # end
-
-  # ---------------------------------------------------------------------------
-
-  # DEBUG
-  # @time eval(forward_pass_3) 
-  # @btime eval(forward_pass_3) 
+  # # DEBUG
+  # @time eval(forward_pass) 
+  # @btime eval(forward_pass) 
 
   # ==============================================================================
   # # Compute the downstream messages
@@ -631,14 +650,39 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath)
 ;
   ##
 
-  # Concatenate the different expressions corresponding to the steps of the 
-  algo = Expr(:block, vcat(potentials.args,
-                           forward_pass_1.args,
-                           backward_pass.args,
-                           bag_marginals,
-                           unnormalized_marginals,
-                           normalize_marginals_expr,
-                          )...)
+  # Concatenate the different expressions corresponding to the Junction Tree algo steps
+
+  if last_stage == ForwardPass
+    algo = Expr(:block, vcat(potentials.args,
+                            partial_evaluation ? forward_pass_1.args : forward_pass,
+                            )...)
+  elseif last_stage == BackwardPass
+    algo = Expr(:block, vcat(potentials.args,
+                            partial_evaluation ? forward_pass_1.args : forward_pass,
+                            backward_pass.args,
+                            )...)
+  elseif last_stage == BagMarginals
+    algo = Expr(:block, vcat(potentials.args,
+                            partial_evaluation ? forward_pass_1.args : forward_pass,
+                            backward_pass.args,
+                            bag_marginals,
+                            )...)
+  elseif last_stage == UnnormalizedMarginals
+    algo = Expr(:block, vcat(potentials.args,
+                            partial_evaluation ? forward_pass_1.args : forward_pass,
+                            backward_pass.args,
+                            bag_marginals,
+                            unnormalized_marginals,
+                            )...)
+  elseif last_stage == Marginals
+    algo = Expr(:block, vcat(potentials.args,
+                            partial_evaluation ? forward_pass_1.args : forward_pass,
+                            backward_pass.args,
+                            bag_marginals,
+                            unnormalized_marginals,
+                            normalize_marginals_expr,
+                            )...)
+  end
 
   # # DEBUG
   # println(algo)
