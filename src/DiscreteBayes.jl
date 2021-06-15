@@ -135,11 +135,14 @@ problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"
 td_filepath = problem_dir*problem*".merlin.td"
 uai_filepath = problem_dir*problem*".uai"
 uai_evid_filepath = problem_dir*problem*".uai.evid"
+
+# partial_evaluation = false
+# last_stage = Marginals
 # -----------------------------------------------------------------------------
 
-##
-
 @enum LastStage ForwardPass BackwardPass BagMarginals UnnormalizedMarginals Marginals
+
+##
 
 """
     computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
@@ -220,7 +223,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
     # Verify that the bag id (second element in line) is the same as the index of last added vertex
     bag_id = bag_arr[2] |> x -> parse(Int, x)
-
     @assert nv(g) == bag_id
 
     # Store the variables the bag (cluster) depends on in a property
@@ -340,7 +342,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # ==============================================================================
 
   # Construct an abstract tree using AbstractTrees.jl
-  root = Node(1) # arbitrarily choosing Node 1 as root
+  # root = Node(1) # arbitrarily choosing Node 1 as root
+  root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
   constructTreeDecompositionAbstractTree!(g, root)
 
   # # DEBUG
@@ -647,40 +650,37 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # DEBUG
   # println(algo_cse)
 
-;
-  ##
-
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
 
   if last_stage == ForwardPass
-    algo = Expr(:block, vcat(potentials.args,
-                            partial_evaluation ? forward_pass_1.args : forward_pass,
+    algo = Expr(:block, vcat(potentials,
+                             partial_evaluation ? forward_pass_1 : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
-    algo = Expr(:block, vcat(potentials.args,
-                            partial_evaluation ? forward_pass_1.args : forward_pass,
-                            backward_pass.args,
+    algo = Expr(:block, vcat(potentials,
+                             partial_evaluation ? forward_pass_1 : forward_pass,
+                             backward_pass,
                             )...)
   elseif last_stage == BagMarginals
-    algo = Expr(:block, vcat(potentials.args,
-                            partial_evaluation ? forward_pass_1.args : forward_pass,
-                            backward_pass.args,
-                            bag_marginals,
+    algo = Expr(:block, vcat(potentials,
+                             partial_evaluation ? forward_pass_1 : forward_pass,
+                             backward_pass,
+                             bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
-    algo = Expr(:block, vcat(potentials.args,
-                            partial_evaluation ? forward_pass_1.args : forward_pass,
-                            backward_pass.args,
-                            bag_marginals,
-                            unnormalized_marginals,
+    algo = Expr(:block, vcat(potentials,
+                             partial_evaluation ? forward_pass_1 : forward_pass,
+                             backward_pass,
+                             bag_marginals,
+                             unnormalized_marginals,
                             )...)
   elseif last_stage == Marginals
-    algo = Expr(:block, vcat(potentials.args,
-                            partial_evaluation ? forward_pass_1.args : forward_pass,
-                            backward_pass.args,
-                            bag_marginals,
-                            unnormalized_marginals,
-                            normalize_marginals_expr,
+    algo = Expr(:block, vcat(potentials,
+                             partial_evaluation ? forward_pass_1 : forward_pass,
+                             backward_pass,
+                             bag_marginals,
+                             unnormalized_marginals,
+                             normalize_marginals_expr,
                             )...)
   end
 
@@ -689,6 +689,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
   # # DEBUG
   # @btime eval(algo)
+
+  ##
 
   function_name = :compute_marginals
   sig = ()
