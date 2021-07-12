@@ -115,10 +115,12 @@ function generate_function_expression(function_name, sig, variables, body)
 	)
 end
 
+@enum LastStage ForwardPass BackwardPass BagMarginals UnnormalizedMarginals Marginals
+
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
 
-# Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
+Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
 
 # using Printf
 # Base.show(io::IO, f::Float64) = @printf io "%1.2f" f
@@ -137,11 +139,10 @@ td_filepath = problem_dir*problem*".td"
 uai_filepath = problem_dir*problem*".uai"
 uai_evid_filepath = problem_dir*problem*".uai.evid"
 
-# partial_evaluation = false
-# last_stage = Marginals
+partial_evaluation = false
+last_stage = Marginals
+smart_root_selection = false
 # -----------------------------------------------------------------------------
-
-@enum LastStage ForwardPass BackwardPass BagMarginals UnnormalizedMarginals Marginals
 
 ##
 
@@ -173,7 +174,9 @@ g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
 """
 function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath; 
                               partial_evaluation = false,
-                              last_stage::LastStage = Marginals)
+                              last_stage::LastStage = Marginals,
+                              smart_root_selection = true,
+                             )
 
   ## Read the td file into an array of lines
   rawlines = open(td_filepath) do file
@@ -342,12 +345,20 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # Assign each factor to a cluster
   # ==============================================================================
 
+  if smart_root_selection
+    root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
+  else
+    root = Node(1) # arbitrarily chose Node 1 as root
+  end
+
+  # root = Node(339) # optimal for problem 14
+  set_prop!(g, root.id, :isroot, true)
+
   # Construct an abstract tree using AbstractTrees.jl
-  # root = Node(1) # arbitrarily choosing Node 1 as root
-  root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
   constructTreeDecompositionAbstractTree!(g, root)
 
   # # DEBUG
+  # @show root.id
   # println("\nCluster tree:")
   # print_tree(root)
 
@@ -461,7 +472,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
     # Pass 1: constant message folding (eval constant messages)
     forward_pass_1 = quote end
-    msgs_evaled = Symbol[]
+    # msgs_evaled = Symbol[]
     for ex in forward_pass.args
       if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
         bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get bag id from msg var
@@ -666,22 +677,22 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-                             bag_marginals,
+														 Expr(:block, bag_marginals...),
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-                             bag_marginals,
-                             unnormalized_marginals,
+														 Expr(:block, bag_marginals...),
+														 Expr(:block, unnormalized_marginals...),
                             )...)
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-                             bag_marginals,
-                             unnormalized_marginals,
-                             normalize_marginals_expr,
+														 Expr(:block, bag_marginals...),
+														 Expr(:block, unnormalized_marginals...),
+														 Expr(:block, normalize_marginals_expr),
                             )...)
   end
 
