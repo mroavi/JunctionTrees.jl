@@ -130,9 +130,10 @@ problem = "Promedus_24"
 # problem = "03-merlin-simple6"
 # problem = "05-mrv"
 
-problem_dir = joinpath(homedir(), "repos/partial-evaluation/problems/"*problem*"/")
+problem_dir = joinpath(homedir(), "repos/DiscreteBayesUtils/problems/"*problem*"/")
 
-td_filepath = problem_dir*problem*".merlin.td"
+td_filepath = problem_dir*problem*".td"
+# td_filepath = problem_dir*problem*".merlin.td"
 uai_filepath = problem_dir*problem*".uai"
 uai_evid_filepath = problem_dir*problem*".uai.evid"
 
