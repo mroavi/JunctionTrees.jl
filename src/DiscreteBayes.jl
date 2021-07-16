@@ -12,7 +12,7 @@ export computeMarginalsExpr,
   redu,
   norm
 
-export LastStage, ForwardPass, BackwardPass, BagMarginals, UnnormalizedMarginals, Marginals
+export LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
 using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays, MacroTools
 
@@ -115,7 +115,7 @@ function generate_function_expression(function_name, sig, variables, body)
 	)
 end
 
-@enum LastStage ForwardPass BackwardPass BagMarginals UnnormalizedMarginals Marginals
+@enum LastStage ForwardPass BackwardPass JointMarginals UnnormalizedMarginals Marginals
 
 # -----------------------------------------------------------------------------
 # TODO: erase me. TEMP: handy while developing
@@ -125,8 +125,8 @@ Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
 # using Printf
 # Base.show(io::IO, f::Float64) = @printf io "%1.2f" f
 
-# problem = "Promedus_11"
-problem = "Promedus_24"
+problem = "Promedus_11"
+# problem = "Promedus_24"
 # problem = "Promedus_26"
 # problem = "01-example-paskin"
 # problem = "03-merlin-simple6"
@@ -381,7 +381,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # Compute potentials for each bag and store them in a bag property
   # ==============================================================================
 
-  potentials = quote end
+  potentials = quote end |> rmlines
 
   for bag in vertices(g)
     bag_factors = get_prop(g, bag, :factors)
@@ -471,7 +471,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     eval(potentials)
 
     # Pass 1: constant message folding (eval constant messages)
-    forward_pass_1 = quote end
+    forward_pass_1 = quote end |> rmlines
     # msgs_evaled = Symbol[]
     for ex in forward_pass.args
       if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
@@ -517,7 +517,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # Compute the downstream messages
   # ==============================================================================
 
-  backward_pass = quote end
+  backward_pass = quote end |> rmlines
 
   # Visit each bag in preorder and compute the messages through all edges other
   # than the one connecting it to the parent
@@ -590,72 +590,107 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
   # println(backward_pass)
 
+	# ==============================================================================
+	# Compute unnormalized marginals from sepsets
+	# ==============================================================================
+
+	edge_marginals = quote end |> rmlines
+	bag_marginals = quote end |> rmlines
+	unnormalized_marginals = quote end |> rmlines
+
+	# Order edges in ascending order according to the number of vars in the sepset
+	edges_ordered = map(edge -> (edge, length(get_prop(g, edge, :sepset))), edges(g)) |>
+		x -> sort(x, by=y -> y[end]) |>
+		x -> map(y -> y[begin], x)
+
+	# Order bags in ascending order according to their number of vars
+	bags_ordered =
+		map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nbags) |>
+		x -> sort(x, by=y -> y[end]) |>
+		x -> map(y -> y[begin], x)
+
+	# For each var in the model
+	for var in 1:nvars 
+		unnorm_mar_var_name = Symbol("unnorm_mar_", var) # variable name for the marginal of the current var
+
+		# 1. Search current var in sepsets
+		for edge in edges_ordered
+			sepset = get_prop(g, edge, :sepset)
+			# Is the current var in the current edge sepset?
+			if var in sepset
+				# Yes, then 1.1 add edge marginal expr to algo (if not done already) 
+				# and 1.2 add an expr that marginalizes the other vars (unnorm_mar_)
+				edge_mar_var_name = Symbol("edge_mar_", min(edge.src,edge.dst),"_", max(edge.src,edge.dst))
+				up_msg = get_prop(g, edge, :up_msg)
+				down_msg = get_prop(g, edge, :down_msg)
+				edge_marginal = :($edge_mar_var_name = product($(up_msg.args[1]), $(down_msg.args[1])))
+
+				# 1.1 Has this edge marginal expr already been added to the algo?
+				if !has_prop(g, edge, :marg)
+					# No, then add it
+					push!(edge_marginals.args, edge_marginal)
+					# Mark as added
+					set_prop!(g, edge, :marg, edge_marginal)
+				end
+
+				# 1.2 Marginalize the other vars (if any) and store the resulting expr in the algo
+				mar_vars = setdiff(sepset, var)
+				if isempty(mar_vars) 
+					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $edge_mar_var_name))
+				else
+					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(edge_marginal.args[1]), $(mar_vars...))))
+				end
+
+				@goto continue_with_next_var # used to "break" from two nested loops
+			end
+		end
+
+		# 2. The current var was not found in any edge, then search for it in the bags
+		for bag in bags_ordered
+			bag_vars = get_prop(g, bag, :vars)
+			# Is the current var in the current bag?
+			if var in bag_vars
+
+				# Yes, then 2.1 add bag marginal expr to algo (if not done already) and 2.2 marginalize the other vars
+				bag_mar_var_name = Symbol("bag_mar_", bag)
+				pot_var_name = Symbol("pot_", bag)
+
+				in_msgs_var_names =
+					get_prop(g, bag, :in_msgs) |>
+					in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) # get in msg variable names
+
+				bag_marginal =
+					vcat(in_msgs_var_names, pot_var_name) |>
+					x -> :($bag_mar_var_name = product($(x...)))
+
+				# 2.1 Has this bag marginal expr already been added to the algo?
+				if !has_prop(g, bag, :marg)
+					push!(bag_marginals.args, bag_marginal) # no, then add it
+					set_prop!(g, bag, :marg, bag_marginal) # mark as added
+				end
+
+				# 2.2 Marginalize the other vars (if any) and store the resulting expr in the algo
+				mar_vars = setdiff(bag_vars, var)
+				if isempty(mar_vars) 
+					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $bag_mar_var_name))
+				else
+					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(bag_marginal.args[1]), $(mar_vars...))))
+				end
+
+				@goto continue_with_next_var
+			end
+		end
+
+		@label continue_with_next_var
+	end
+
+	# Normalize all marginals
+	normalize_marginals_expr =
+		map(x -> x.args[1], unnormalized_marginals.args) |> # get the variable name
+		x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
+
   # ==============================================================================
-  # # Compute bag marginals
-  # ==============================================================================
-
-  # Used to store the unnormalized bag marginals
-  bag_marginals = Vector{Expr}(undef, nbags)
-
-  # A bag marginal is the factor product of incomming msgs and potential
-  # TODO: Compute marginals more efficiently: extract them from sepsets, not from bags
-  for bag in PostOrderDFS(root)
-    # Bag marginal expression
-    pot_var_name = Symbol("pot_", bag.id)
-
-    in_msgs_var_names =
-      get_prop(g, bag.id, :in_msgs) |>
-      in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) # get msg variable names
-
-    # # DEBUG
-    # println("bag ", string(bag.id), ": ", in_msgs_var_names)
-
-    bag_mar_var_name = Symbol("mar_bag_", bag.id)
-
-    bag_marginals[bag.id] =
-      vcat(in_msgs_var_names, pot_var_name) |>
-      x -> :($bag_mar_var_name = product($(x...)))
-  end
-
-  # # DEBUG
-  # map(bag_marginal -> println(bag_marginal), bag_marginals)
-;
-  # ==============================================================================
-  # # Compute marginals
-  # ==============================================================================
-
-  # Traverse bags in ascending order according to their number of vars
-  bag_traversal_order =
-    map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nbags) |>
-    x -> sort(x, by=y -> y[end]) |>
-    x -> map(y -> y[begin], x)
-
-  # Used to store the unnormalized marginal expressions
-  unnormalized_marginals = Vector{Expr}(undef, nvars)
-
-  for bag_id in bag_traversal_order
-    # Marginal expressions for each variable
-    bag_vars = get_prop(g, bag_id, :vars)
-    for var in bag_vars
-      isassigned(unnormalized_marginals, var) && continue
-      mar_vars = setdiff(bag_vars, var)
-      unnorm_mar_var_name = Symbol("unnorm_mar_", var)
-      unnormalized_marginals[var] = 
-        bag_marginals[bag_id].args[1] |>
-        bag_mar_var_name -> :($unnorm_mar_var_name = marg($bag_mar_var_name, $(mar_vars...)))
-    end
-  end
-
-  # # DEBUG
-  # map(unnormalized_marginal -> println(unnormalized_marginal), unnormalized_marginals)
-
-  # Normalize all marginals
-  normalize_marginals_expr =
-    map(x -> x.args[1], unnormalized_marginals) |> # get the variable name
-    x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
-
-  # ==============================================================================
-  # # Common subexpression elimination
+  ## Common subexpression elimination
   # ==============================================================================
   # algo_cse = CommonSubexpressions.binarize(algo) |> cse
 
@@ -673,25 +708,28 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
                             )...)
-  elseif last_stage == BagMarginals
+  elseif last_stage == JointMarginals
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-														 Expr(:block, bag_marginals...),
+														 edge_marginals,
+														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-														 Expr(:block, bag_marginals...),
-														 Expr(:block, unnormalized_marginals...),
+														 edge_marginals,
+														 bag_marginals,
+														 unnormalized_marginals,
                             )...)
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(potentials,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
-														 Expr(:block, bag_marginals...),
-														 Expr(:block, unnormalized_marginals...),
+														 edge_marginals,
+														 bag_marginals,
+														 unnormalized_marginals,
 														 Expr(:block, normalize_marginals_expr),
                             )...)
   end
