@@ -3,7 +3,7 @@ using Test
 
 @testset "factors.jl" begin
 
-  # Factor product
+  ## Factor product
 
   A = Factor{Float64,1}((1,), [0.11; 0.89])
   B = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
@@ -36,7 +36,7 @@ using Test
   @test C.vars == ()
   @test ndims(C.vals) == 0
 
-  # Factor marginalization
+  ## Factor marginalization
 
   A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
   V = (2,)
@@ -57,7 +57,7 @@ using Test
   @test B.vars == (1, 3)
   @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
-  # Factor reduction
+  ## Factor reduction
 
   A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                        [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
@@ -67,7 +67,7 @@ using Test
   @test B.vars == (1, 2)
   @test B.vals ≈ [0.25 0.08; 0.05 0.0; 0.15 0.09]
 
-  # Factor normalization
+  ## Factor normalization
 
   A = Factor{Float64,1}((1,), [0.22; 0.89])
   C = norm(A)
