@@ -39,21 +39,21 @@ using Test
   ## Factor marginalization
 
   A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
-  V = (2,)
-  B = marg(A, V)
+  vars = (2,)
+  B = marg(A, vars)
   @test B.vars == (1,)
   @test B.vals ≈ [1.0, 1.0]
 
   A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                        [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 
-  V = (2,)
-  B = marg(A, V)
+  vars = (2,)
+  B = marg(A, vars)
   @test B.vars == (1, 3)
   @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
-  V = 2
-  B = marg(A, V)
+  var = 2
+  B = marg(A, var)
   @test B.vars == (1, 3)
   @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
