@@ -2,7 +2,7 @@
 
 mutable struct Node{T}
   id::T
-  children::Array{Node{T}}
+  children::Vector{Node{T}}
   parent::Node{T}
 
   # Root constructor
