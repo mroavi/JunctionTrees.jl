@@ -103,21 +103,18 @@ Reduce/invalidate all entries that are not consitent with the evidence.
 ```julia
 A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                      [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-vars = (3,) 
-vals = (1,)
+vars = (1,3)
+vals = (1,1)
 B = redu(A, vars, vals)
 ```
 """
 function redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
-  B_vars = setdiff(A.vars, vars)
-  mapB = indexin(B_vars, collect(A.vars))
-  B_card = size(A.vals)[mapB]
-  R_vars = intersect(A.vars, vars)
-  mapR = indexin(R_vars, collect(A.vars))
-  indxA = ntuple(i -> (i in mapR) ? vals[indexin(i, mapR)...] : Colon(), length(A.vars))
-  indxA = CartesianIndices(A.vals)[indxA...] # here occurs the actual reduction
-  B_vals = A.vals[indxA]
-  return Factor{T,length(B_vars)}(Tuple(B_vars), A.vals[indxA])
+  mapVars = indexin(vars, collect(A.vars))
+  indxValidTuple = ntuple(i -> (i in mapVars) ? vals[indexin(i, mapVars)...] : Colon(), length(A.vars))
+  indxValid = CartesianIndices(A.vals)[indxValidTuple...]
+  B_vals = zeros(size(A.vals))
+  B_vals[indxValid] .= A.vals[indxValid]
+  return Factor{T,length(A.vars)}(A.vars, B_vals)
 end
 
 """
