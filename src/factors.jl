@@ -95,7 +95,7 @@ function _marg(r_vals,ret_vars,Avals,dims)
 end
 
 """
-    redu(A::Factor, var::Int64, val::Int64)
+    redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
 
 Reduce/invalidate all entries that are not consitent with the evidence.
 
@@ -103,18 +103,18 @@ Reduce/invalidate all entries that are not consitent with the evidence.
 ```julia
 A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                      [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-var = 3
-val = 1
-B = redu(A, var, val)
+vars = (3,) 
+vals = (1,)
+B = redu(A, vars, vals)
 ```
 """
-function redu(A::Factor{T}, var::Int64, val::Int64) where T
-  B_vars = setdiff(A.vars, var)
+function redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
+  B_vars = setdiff(A.vars, vars)
   mapB = indexin(B_vars, collect(A.vars))
   B_card = size(A.vals)[mapB]
-  R_vars = intersect(A.vars, var)
+  R_vars = intersect(A.vars, vars)
   mapR = indexin(R_vars, collect(A.vars))
-  indxA = ntuple(i -> (i == mapR[1]) ? val : :, length(A.vars))
+  indxA = ntuple(i -> (i in mapR) ? vals[indexin(i, mapR)...] : Colon(), length(A.vars))
   indxA = CartesianIndices(A.vals)[indxA...] # here occurs the actual reduction
   B_vals = A.vals[indxA]
   return Factor{T,length(B_vars)}(Tuple(B_vars), A.vals[indxA])

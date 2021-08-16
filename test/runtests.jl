@@ -83,11 +83,19 @@ using Test
 
     A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-    obs_var = 3
-    obs_val = 1
-    B = redu(A, obs_var, obs_val)
+    obs_vars = (3,)
+    obs_vals = (1,)
+    B = redu(A, obs_vars, obs_vals)
     @test B.vars == (1, 2)
     @test B.vals ≈ [0.25 0.08; 0.05 0.0; 0.15 0.09]
+
+    A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                         [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+    obs_vars = (2, 3)
+    obs_val = (1, 1)
+    B = redu(A, obs_vars, obs_val)
+    @test B.vars == (1,)
+    @test B.vals ≈ [0.25; 0.05; 0.15]
 
   end
 
