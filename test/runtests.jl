@@ -63,18 +63,6 @@ using Test
     @test B.vars == (1, 3)
     @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
-    # TODO: ignore vars to marginalize if they are not in the factor's scope
-    # marg_var = 9
-    # B = marg(A, marg_var)
-    # @test B.vars == A.vars
-    # @test vec(B.vals) ≈ A.vals
-
-    # TODO: return a unmodified copy of A if no variables to maginalize are passed
-    # marg_var = ()
-    # B = marg(A, marg_var)
-    # @test B.vars == A.vars
-    # @test vec(B.vals) ≈ A.vals
-
   end
 
   ## Factor reduction
