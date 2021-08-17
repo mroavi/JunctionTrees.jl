@@ -203,7 +203,11 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # Convert to 1-based indexing
   observations[1,:] = observations[1,:] .+ 1
 
-  @assert nobsvars == size(observations)[2]
+  # Store observed variables and obseved values in tuples
+  obsvars = observations[1,:]
+  obsvals = observations[2,:]
+
+  @assert nobsvars == length(obsvars)
 
   # Initialize an empty MetaGraph
   g = MetaGraph()
@@ -234,7 +238,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     set_prop!(g, bag_id, :vars, bag_vertices)
 
     # Mark bags (clusters) that contain at least one observed var
-    has_observed_var = intersect(bag_vertices, observations[1,:]) |> !isempty
+    has_observed_var = intersect(bag_vertices, obsvars) |> !isempty
     has_observed_var && set_prop!(g, bag_id, :isobserved, true)
 
     # Create an empty vector of factors
