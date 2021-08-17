@@ -113,7 +113,7 @@ function redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
   indxValidTuple = ntuple(i -> (i in mapVars) ? vals[indexin(i, mapVars)...] : Colon(), length(A.vars))
   indxValid = CartesianIndices(A.vals)[indxValidTuple...]
   B_vals = zeros(size(A.vals))
-  B_vals[indxValid] .= A.vals[indxValid]
+  B_vals[indxValid] = A.vals[indxValid]
   return Factor{T,length(A.vars)}(A.vars, B_vals)
 end
 
