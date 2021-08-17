@@ -201,11 +201,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   observations = reshape(rest, 2, :)
 
   # Convert to 1-based indexing
-  observations[1,:] = observations[1,:] .+ 1
-
-  # Store observed variables and obseved values in tuples
-  obsvars = observations[1,:]
-  obsvals = observations[2,:]
+  obsvars = observations[1,:] .+ 1
+  obsvals = observations[2,:] .+ 1
 
   @assert nobsvars == length(obsvars)
 
@@ -382,27 +379,45 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # map(vertex -> get_prop(g, vertex, :factors), vertices(g)) # factors assigned to each bag
 
   # ==============================================================================
-  # Compute potentials for each bag and store them in a bag property
+  # Compute each bag's potential and 
+  # add a reduction expression to bags that contain observed variables
   # ==============================================================================
 
   potentials = quote end |> rmlines
 
+  # For each bag
   for bag in vertices(g)
+    pot_var_name = Symbol("pot_", bag)
+    # Are there any factors assigned to the current bag?
     bag_factors = get_prop(g, bag, :factors)
     if isempty(bag_factors)
-      potential = Factor{Float64,0}((), Array{Float64,0}(undef))
+      # No, then assign a "unit" potential to this bag
+      pot = Factor{Float64,0}((), Array{Float64,0}(undef))
+      push!(potentials.args, :($pot_var_name = $pot))
     else
-      potential = product(bag_factors...)
+      # Compute factor product of all potentials assigned to the current bag
+      pot = product(bag_factors...)
+      # Does the current bag have observed variables?
+      bag_obsvars = intersect(pot.vars, obsvars)
+      if isempty(bag_obsvars)
+        # No, then no need for reduction
+        push!(potentials.args, :($pot_var_name = $pot))
+      else
+        # Yes, then reduce the factors based on the observed vars and values
+        indx_bag_obsvars = indexin(bag_obsvars, obsvars)
+        bag_obsvals = map(i -> obsvals[i], indx_bag_obsvars)
+        ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), $(Tuple(bag_obsvals))))
+        push!(potentials.args, ex)
+      end
     end
-    pot_var_name = Symbol("pot_", bag)
-    push!(potentials.args, :($pot_var_name = $potential))
   end
 
   # # DEBUG
-  # map(vertex -> (vertex, get_prop(g, vertex, :potential)), vertices(g)) # potential of each bag
+  # map(vertex -> (vertex, get_prop(g, vertex, :pot)), vertices(g)) # potential of each bag
 
   # # DEBUG
-  # println(algo)
+  # println(potentials)
+  # eval(potentials)
 
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
 
@@ -747,8 +762,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   ##
 
   function_name = :compute_marginals
-  sig = ()
-  variables = []
+  sig = (Tuple, Tuple)
+  variables = [:obsvars, :obsvals]
   body = algo
   # body = algo_cse
 

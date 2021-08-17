@@ -98,6 +98,13 @@ using Test
     @test B.vals ≈ cat([0.25 0.00; 0.05 0.00; 0.15 0.00],
                        [0.00 0.00; 0.00 0.00; 0.00 0.00], dims=3)
 
+    A = Factor{Float64,1}((1,), [0.11; 0.89])
+    obs_vars = (1,)
+    obs_val = (1,)
+    B = redu(A, obs_vars, obs_val)
+    @test B.vars == A.vars
+    @test B.vals ≈ [0.11, 0.00]
+
   end
 
   ## Factor normalization
