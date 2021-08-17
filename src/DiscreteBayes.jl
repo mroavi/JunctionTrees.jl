@@ -198,12 +198,12 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
   # Extract number of observed vars, and their id together with their corresponding value
   nobsvars, rest = split(line[1]) |> x -> parse.(Int, x) |> x -> (x[1], x[2:end])
-  obsvars = reshape(rest, 2, :)
+  observations = reshape(rest, 2, :)
 
   # Convert to 1-based indexing
-  obsvars[1,:] = obsvars[1,:] .+ 1
+  observations[1,:] = observations[1,:] .+ 1
 
-  @assert nobsvars == size(obsvars)[2]
+  @assert nobsvars == size(observations)[2]
 
   # Initialize an empty MetaGraph
   g = MetaGraph()
@@ -234,7 +234,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     set_prop!(g, bag_id, :vars, bag_vertices)
 
     # Mark bags (clusters) that contain at least one observed var
-    has_observed_var = intersect(bag_vertices, obsvars[1,:]) |> !isempty
+    has_observed_var = intersect(bag_vertices, observations[1,:]) |> !isempty
     has_observed_var && set_prop!(g, bag_id, :isobserved, true)
 
     # Create an empty vector of factors
@@ -246,7 +246,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   end
 
   # # DEBUG
-  # obsvars # observed vars with their corresponding value (vars on first row, vals on second row)
+  # observations # observed vars with their corresponding value (vars on first row, vals on second row)
   # map(x -> string(x,": ",get_prop(g,x,:vars)), vertices(g)) |> x -> show(stdout, "text/plain", x)
   # filter_vertices(g, :isobserved) |> collect # bags that contain at least one observed var
 
