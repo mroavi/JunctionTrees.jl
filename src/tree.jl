@@ -11,6 +11,8 @@ mutable struct Node{T}
   # Child node constructor
   Node{T}(id, parent::Node{T}) where T = new{T}(id, Node{T}[], parent)
 end
+
+# Outer constructor that extracts the type from the argument
 Node(id) = Node{typeof(id)}(id)
 
 function addchild!(id, parent::Node)
