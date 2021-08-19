@@ -407,7 +407,10 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
         # Yes, then reduce the factors based on the observed vars and values
         indx_bag_obsvars = indexin(bag_obsvars, obsvars)
         ex_bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
-        ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),)))
+        ex = 
+          :($pot_var_name = $pot |>
+          x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),))) |>
+          x -> MacroTools.prewalk(rmlines, x)
         push!(obspots.args, ex)
       end
     end
