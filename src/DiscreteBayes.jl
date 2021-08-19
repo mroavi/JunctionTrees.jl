@@ -406,9 +406,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
       else
         # Yes, then reduce the factors based on the observed vars and values
         indx_bag_obsvars = indexin(bag_obsvars, obsvars)
-        # bag_obsvals = map(i -> obsvals[i], indx_bag_obsvars)
-        # ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), $(Tuple(bag_obsvals))))
-        # TODO: investigate why the lines below generate an incorrect answer (Promedus_11, no pe)
         ex_bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
         ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),)))
         push!(obspots.args, ex)
