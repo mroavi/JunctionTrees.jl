@@ -429,7 +429,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # Compute the upstream message
   # ==============================================================================
 
-  forward_pass = quote end
+  forward_pass = quote end |> rmlines
 
   # Visit each bag in postorder and compute its upstream message
   for bag in PostOrderDFS(root)
