@@ -383,7 +383,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # add a reduction expression to bags that contain observed variables
   # ==============================================================================
 
-  potentials = quote end |> rmlines
+  pots = quote end |> rmlines
+  obspots = quote end |> rmlines
 
   # For each bag
   for bag in vertices(g)
@@ -393,7 +394,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     if isempty(bag_factors)
       # No, then assign a "unit" potential to this bag
       pot = Factor{Float64,0}((), Array{Float64,0}(undef))
-      push!(potentials.args, :($pot_var_name = $pot))
+      push!(pots.args, :($pot_var_name = $pot))
     else
       # Compute factor product of all potentials assigned to the current bag
       pot = product(bag_factors...)
@@ -401,13 +402,16 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
       bag_obsvars = intersect(pot.vars, obsvars)
       if isempty(bag_obsvars)
         # No, then no need for reduction
-        push!(potentials.args, :($pot_var_name = $pot))
+        push!(pots.args, :($pot_var_name = $pot))
       else
         # Yes, then reduce the factors based on the observed vars and values
         indx_bag_obsvars = indexin(bag_obsvars, obsvars)
-        bag_obsvals = map(i -> obsvals[i], indx_bag_obsvars)
-        ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), $(Tuple(bag_obsvals))))
-        push!(potentials.args, ex)
+        # bag_obsvals = map(i -> obsvals[i], indx_bag_obsvars)
+        # ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), $(Tuple(bag_obsvals))))
+        # TODO: investigate why the lines below generate an incorrect answer (Promedus_11, no pe)
+        ex_bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
+        ex = :($pot_var_name = $pot |> x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),)))
+        push!(obspots.args, ex)
       end
     end
   end
@@ -416,8 +420,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # map(vertex -> (vertex, get_prop(g, vertex, :pot)), vertices(g)) # potential of each bag
 
   # # DEBUG
-  # println(potentials)
-  # eval(potentials)
+  # println(pots)
+  # eval(pots)
 
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
 
@@ -487,7 +491,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # ------------------------------------------------------------------------------
   if(partial_evaluation)
 
-    eval(potentials)
+    eval(pots)
 
     # Pass 1: constant message folding (eval constant messages)
     forward_pass_1 = quote end |> rmlines
@@ -719,23 +723,27 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
 
   if last_stage == ForwardPass
-    algo = Expr(:block, vcat(potentials,
+    algo = Expr(:block, vcat(obspots,
+                             pots,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
-    algo = Expr(:block, vcat(potentials,
+    algo = Expr(:block, vcat(obspots,
+                             pots,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
                             )...)
   elseif last_stage == JointMarginals
-    algo = Expr(:block, vcat(potentials,
+    algo = Expr(:block, vcat(obspots,
+                             pots,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
 														 edge_marginals,
 														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
-    algo = Expr(:block, vcat(potentials,
+    algo = Expr(:block, vcat(obspots,
+                             pots,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
 														 edge_marginals,
@@ -743,7 +751,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 														 unnormalized_marginals,
                             )...)
   elseif last_stage == Marginals
-    algo = Expr(:block, vcat(potentials,
+    algo = Expr(:block, vcat(obspots,
+                             pots,
                              partial_evaluation ? forward_pass_1 : forward_pass,
                              backward_pass,
 														 edge_marginals,
