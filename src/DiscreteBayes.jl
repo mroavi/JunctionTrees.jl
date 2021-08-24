@@ -58,33 +58,49 @@ function constructTreeDecompositionAbstractTree!(g::MetaGraph, root::Node, paren
 end
 
 """
-    hasObservedNode(g::MetaGraph, root::Node)
+    partial_eval_prop_update!(g, curr_node, prev_node)
 
-    Returns a boolean stating whether the input (sub)tree has at least one observed
-    node.
+Recursive function that invalidates messages in the graph `g` that cannot be
+partially evaluated at compile time. This marking is done using MetaGraphs'
+properties for each edge in the graph.
+
 """
-function hasObservedNode(g::MetaGraph, root::Node)
-
-  for node in PostOrderDFS(root)
-    has_prop(g, node.id, :isobserved) && return true
+function partial_eval_prop_update!(g, curr_node, prev_node)
+  # Get the neighbors except the previous node
+  next_nodes = setdiff(neighbors(g, curr_node), prev_node)
+  # Base case
+  isempty(next_nodes) && return
+  # Invalidate messages that go from current node to each node in `next_nodes`
+  for next_node in next_nodes
+    # This message is reachable from an observed node, then invalidate it
+    Symbol("pre_eval_msg_", curr_node, "_", next_node) |> x -> set_prop!(g, curr_node, next_node, x, false)
+    # Recursive call
+    partial_eval_prop_update!(g, next_node, curr_node)
   end
-
-  return false
-
 end
 
 """
-    getNode(root::Node, node_id::Int)
+    partial_eval_analysis!(g)
 
-    Returns the `Node` object that has `node_id` in its `id` field.
+Analyzes which messages can be computed during the compilation stage in the
+graph `g`.
+
 """
-function getNode(root::Node, node_id::Int)
-
-  for node in PostOrderDFS(root)
-    node.id == node_id && return node
+function partial_eval_analysis!(g)
+  # Initialize the `pre_eval_` property with `true` for all messages (two per edge)
+  for edge in edges(g)
+    prop_name = Symbol("pre_eval_msg_", edge.src, "_", edge.dst)
+    set_prop!(g, edge.src, edge.dst, prop_name, true)
+    prop_name = Symbol("pre_eval_msg_", edge.dst, "_", edge.src)
+    set_prop!(g, edge.src, edge.dst, prop_name, true)
   end
-
-  return nothing
+  # Get a list of all observed nodes
+  obsnodes = filter_vertices(g, :isobserved)
+  # For each observed node, mark all messages that go from that node 
+  # to all other nodes in the graph as not possible to partially evaluate
+  for obsnode in obsnodes
+    partial_eval_prop_update!(g, obsnode, [])
+  end
 end
 
 """
@@ -265,7 +281,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     edge_src, edge_dst = split(edge) |> x -> parse.(Int, x)
     add_edge!(g, edge_src, edge_dst)
 
-    # Find and set the sepset as edge's property
+    # Calculate the sepset and set it as an edge's property
     vars_src = get_prop(g, edge_src, :vars)
     vars_dst = get_prop(g, edge_dst, :vars)
     sepset = intersect(vars_src, vars_dst)
@@ -276,6 +292,17 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # DEBUG
   # println("\nSepset of each edge:")
   # map(edge -> get_prop(g, edge, :sepset), edges(g)) |> display # sepset of each edge
+
+  # ==============================================================================
+  # Determine which messages can be partially-evaluated
+  # ==============================================================================
+
+  partial_eval_analysis!(g)
+
+  # # DEBUG
+  # for edge in edges(g)
+  #   @show props(g, edge)
+  # end
 
   # ==============================================================================
   # leaves
@@ -493,43 +520,21 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
     eval(pots)
 
-    # Pass 1: constant message folding (eval constant messages)
-    forward_pass_1 = quote end |> rmlines
-    # msgs_evaled = Symbol[]
+    forward_pass_partially_evaled = quote end |> rmlines
     for ex in forward_pass.args
       if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
-        bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get bag id from msg var
-        node = getNode(root, bag) # get tree node using bag id
+        src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
+        prop_name = Symbol("pre_eval_msg_", src, "_", dst)
+        partially_evaluate = get_prop(g, Edge(src, dst), prop_name)
         msg = :($var = $f($(args...))) # reconstruct the message assignment
-        if !hasObservedNode(g, node) # is there no observed var in the (sub)tree below curr node?
-          msg_evaled = eval(msg) # no, then evaluate the message
-          push!(forward_pass_1.args, :($var = $msg_evaled)) # and add it to the new expr
-          # push!(msgs_evaled, var) # save the evaled msg name
+        if partially_evaluate
+          msg_evaled = eval(msg)
+          push!(forward_pass_partially_evaled.args, :($var = $msg_evaled)) # and add it to the new expr
         else
-          push!(forward_pass_1.args, msg) # yes, then add the unmodified msg to the new expr
+          push!(forward_pass_partially_evaled.args, msg) # yes, then add the unmodified msg to the new expr
         end
       end
     end
-
-    # # Pass 2: filter evaled messages
-    # # Filter out evaluated messages (based on implementation of `rmlines(x)` in MacroTools.jl)
-    # forward_pass_2 = filter(forward_pass_1.args) do x
-    #   !@capture(x, var_ = factor_Factor) # capture exprs of this type: msg = Factor...
-    # end |> x -> Expr(forward_pass_1.head, x...)
-
-    # # Pass 3: constant message propagation
-    # forward_pass_3 = MacroTools.postwalk(forward_pass_2) do x
-    #   if x in msgs_evaled
-    #     factor = eval(x)
-    #     return :($factor)
-    #   end
-    #   return x
-    # end
-
-    # # DEBUG
-    # @time eval(forward_pass_3) 
-    # @btime eval(forward_pass_3) 
-
   end
 
   # # DEBUG
@@ -605,6 +610,27 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
     end
 
+  end
+
+  # ------------------------------------------------------------------------------
+  # # Partial Evaluation
+  # ------------------------------------------------------------------------------
+  if(partial_evaluation)
+    backward_pass_partially_evaled = quote end |> rmlines
+    for ex in backward_pass.args
+      if @capture(ex, var_ = f_(args__)) # (note that this filters the line number nodes)
+        src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
+        prop_name = Symbol("pre_eval_msg_", src, "_", dst)
+        partially_evaluate = get_prop(g, Edge(src, dst), prop_name)
+        msg = :($var = $f($(args...))) # reconstruct the message assignment
+        if partially_evaluate
+          msg_evaled = eval(msg)
+          push!(backward_pass_partially_evaled.args, :($var = $msg_evaled)) # and add it to the new expr
+        else
+          push!(backward_pass_partially_evaled.args, msg) # yes, then add the unmodified msg to the new expr
+        end
+      end
+    end
   end
 
   # # DEBUG
@@ -725,27 +751,27 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   if last_stage == ForwardPass
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_1 : forward_pass,
+                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_1 : forward_pass,
-                             backward_pass,
+                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
+                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
                             )...)
   elseif last_stage == JointMarginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_1 : forward_pass,
-                             backward_pass,
-														 edge_marginals,
+                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
+                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
+														 edge_marginal,
 														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_1 : forward_pass,
-                             backward_pass,
+                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
+                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
 														 unnormalized_marginals,
@@ -753,8 +779,8 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_1 : forward_pass,
-                             backward_pass,
+                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
+                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
 														 unnormalized_marginals,
@@ -781,3 +807,4 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 end
 
 end # module
+
