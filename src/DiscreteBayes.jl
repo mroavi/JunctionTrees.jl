@@ -764,7 +764,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
                              pots,
                              partial_evaluation ? forward_pass_partially_evaled : forward_pass,
                              partial_evaluation ? backward_pass_partially_evaled : backward_pass,
-														 edge_marginal,
+														 edge_marginals,
 														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
