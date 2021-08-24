@@ -114,3 +114,51 @@ using Test
 
   end
 
+  ## Factor identities
+
+  @testset "factor identities" begin
+
+    A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                         [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+
+    B = Factor{Float64,2}((1, 2), [0.5 0.8; 0.1 0.0; 0.3 0.9])
+
+    obs_vars = (3,)
+    obs_vals = (1,)
+
+    # Reduction followed by product is equivalent to product followed by reduction
+
+    C1 = redu(A, obs_vars, obs_vals) |> x -> product(x, B)
+    C2 = product(A, B) |> x -> redu(x, obs_vars, obs_vals)
+
+    @test  C1.vals ≈ C2.vals
+
+    # Reduction followed by marg of unobserved var is equivalent to marg followed by reduction
+
+    marg_var = 1
+
+    C1 = redu(A, obs_vars, obs_vals) |> x -> marg(x, marg_var)
+    C2 = marg(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
+
+    @test C1.vals ≈ C2.vals
+
+    # Reduction followed by marg of observed var is not equivalent to marg followed by reduction
+
+    marg_var = 3
+
+    C1 = redu(A, obs_vars, obs_vals) |> x -> marg(x, marg_var)
+    C2 = marg(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
+
+    @test C1.vals ≉ C2.vals
+
+    # 
+
+    m1 = product(A, B) |> x -> marg(x, (1,3))
+    m2 = redu(A, obs_vars, obs_vals) |> x -> product(x, B) |> x -> marg(x, (1,3))
+
+    @test m1.vals ≉ m2.vals
+
+  end
+
+end
+
