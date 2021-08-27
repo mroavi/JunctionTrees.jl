@@ -94,10 +94,10 @@ function partial_eval_analysis!(g)
     prop_name = Symbol("pre_eval_msg_", edge.dst, "_", edge.src)
     set_prop!(g, edge.src, edge.dst, prop_name, true)
   end
-  # Get a list of all observed nodes
-  obsnodes = filter_vertices(g, :isobserved)
-  # For each observed node, mark all messages that go from that node 
-  # to all other nodes in the graph as not possible to partially evaluate
+  # Get a list of the bags that have one or more observed vars
+  obsnodes = filter_vertices(g, :obsvars)
+  # For each observed bag, mark all messages that go from that bag 
+  # to all other bags in the graph as not possible to partially evaluate
   for obsnode in obsnodes
     partial_eval_prop_update!(g, obsnode, [])
   end
@@ -250,9 +250,9 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
     bag_vertices = bag_arr[3:end] |> x -> parse.(Int, x)
     set_prop!(g, bag_id, :vars, bag_vertices)
 
-    # Mark bags (clusters) that contain at least one observed var
-    has_observed_var = intersect(bag_vertices, obsvars) |> !isempty
-    has_observed_var && set_prop!(g, bag_id, :isobserved, true)
+    # If any, store the bag's observed vars in a property
+    bag_obsvars = intersect(bag_vertices, obsvars)
+    !isempty(bag_obsvars) && set_prop!(g, bag_id, :obsvars, bag_obsvars)
 
     # Create an empty vector of factors
     set_prop!(g, bag_id, :factors, Factor{Float64}[])
@@ -265,7 +265,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # DEBUG
   # observations # observed vars with their corresponding value (vars on first row, vals on second row)
   # map(x -> string(x,": ",get_prop(g,x,:vars)), vertices(g)) |> x -> show(stdout, "text/plain", x)
-  # filter_vertices(g, :isobserved) |> collect # bags that contain at least one observed var
+  # filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
 
   # ==============================================================================
   # Construct the edges
@@ -423,15 +423,12 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
       pot = Factor{Float64,0}((), Array{Float64,0}(undef))
       push!(pots.args, :($pot_var_name = $pot))
     else
-      # Compute factor product of all potentials assigned to the current bag
+      # Yes, then compute the product of all potentials assigned to the current bag
       pot = product(bag_factors...)
       # Does the current bag have observed variables?
-      bag_obsvars = intersect(pot.vars, obsvars)
-      if isempty(bag_obsvars)
-        # No, then no need for reduction
-        push!(pots.args, :($pot_var_name = $pot))
-      else
+      if has_prop(g, bag, :obsvars)
         # Yes, then reduce the factors based on the observed vars and values
+        bag_obsvars = get_prop(g, bag, :obsvars)
         indx_bag_obsvars = indexin(bag_obsvars, obsvars)
         ex_bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
         ex = 
@@ -439,6 +436,9 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
           x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),))) |>
           x -> MacroTools.prewalk(rmlines, x)
         push!(obspots.args, ex)
+      else
+        # No, then no need for reduction
+        push!(pots.args, :($pot_var_name = $pot))
       end
     end
   end
