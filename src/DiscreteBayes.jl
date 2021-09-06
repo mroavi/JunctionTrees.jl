@@ -1,5 +1,5 @@
 module DiscreteBayes
-##
+
 import Base:
   eltype,
   IteratorEltype,
@@ -133,35 +133,6 @@ end
 
 @enum LastStage ForwardPass BackwardPass JointMarginals UnnormalizedMarginals Marginals
 
-# -----------------------------------------------------------------------------
-# TODO: erase me. TEMP: handy while developing
-
-Base.show(io::IO, x::Array{Float64}) = print(io, "[...]")
-
-# using Printf
-# Base.show(io::IO, f::Float64) = @printf io "%1.2f" f
-
-problem = "Promedus_11"
-# problem = "Promedus_24"
-# problem = "Promedus_26"
-# problem = "01-example-paskin"
-# problem = "03-merlin-simple6"
-# problem = "05-mrv"
-
-problem_dir = joinpath(homedir(), "repos/DiscreteBayesUtils/problems/"*problem*"/")
-
-td_filepath = problem_dir*problem*".td"
-# td_filepath = problem_dir*problem*".merlin.td"
-uai_filepath = problem_dir*problem*".uai"
-uai_evid_filepath = problem_dir*problem*".uai.evid"
-
-partial_evaluation = false
-last_stage = Marginals
-smart_root_selection = false
-# -----------------------------------------------------------------------------
-
-##
-
 """
     computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
                          partial_evaluation = false,
@@ -194,7 +165,11 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
                               smart_root_selection = true,
                              )
 
-  ## Read the td file into an array of lines
+  # ==============================================================================
+  ## Read the td and uai evid files
+  # ==============================================================================
+
+  # Read the td file into an array of lines
   rawlines = open(td_filepath) do file
     readlines(file)
   end
@@ -222,12 +197,12 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 
   @assert nobsvars == length(obsvars)
 
+  # ==============================================================================
+  ## Construct the bags
+  # ==============================================================================
+
   # Initialize an empty MetaGraph
   g = MetaGraph()
-
-  # ==============================================================================
-  # Construct the bags
-  # ==============================================================================
 
   # Extract bag definition lines
   bag_lines = lines[2:(2+nbags-1)]
@@ -268,7 +243,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
 
   # ==============================================================================
-  # Construct the edges
+  ## Construct the edges
   # ==============================================================================
 
   # Extract edge definition lines
@@ -294,7 +269,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # map(edge -> get_prop(g, edge, :sepset), edges(g)) |> display # sepset of each edge
 
   # ==============================================================================
-  # Determine which messages can be partially-evaluated
+  ## Determine which messages can be partially-evaluated
   # ==============================================================================
 
   partial_eval_analysis!(g)
@@ -305,7 +280,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # end
 
   # ==============================================================================
-  # leaves
+  ## leaves
   # ==============================================================================
 
   map(x -> length(neighbors(g, x)), vertices(g)) |>   # number of neighbors for each bag
@@ -317,7 +292,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # filter_vertices(g, :isleaf) |> collect |> display
 
   # ==============================================================================
-  # Read the factors
+  ## Read the factors
   # ==============================================================================
 
   # Read the uai file into an array of lines
@@ -370,7 +345,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
   # ==============================================================================
-  # # Assign each factor to a cluster
+  ## Assign each factor to a cluster
   # ==============================================================================
 
   if smart_root_selection
@@ -406,7 +381,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # map(vertex -> get_prop(g, vertex, :factors), vertices(g)) # factors assigned to each bag
 
   # ==============================================================================
-  # Compute each bag's potential and 
+  ## Compute each bag's potential and 
   # add a reduction expression to bags that contain observed variables
   # ==============================================================================
 
@@ -453,7 +428,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
 
   # ==============================================================================
-  # # Compute the upstream message
+  ## Compute the upstream message
   # ==============================================================================
 
   forward_pass = quote end |> rmlines
@@ -514,7 +489,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # @show forward_pass
 
   # ------------------------------------------------------------------------------
-  # # Partial Evaluation
+  # Partial Evaluation
   # ------------------------------------------------------------------------------
   if(partial_evaluation)
 
@@ -613,7 +588,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   end
 
   # ------------------------------------------------------------------------------
-  # # Partial Evaluation
+  # Partial Evaluation
   # ------------------------------------------------------------------------------
   if(partial_evaluation)
     backward_pass_partially_evaled = quote end |> rmlines
@@ -640,7 +615,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # println(backward_pass)
 
 	# ==============================================================================
-	# Compute unnormalized marginals from sepsets
+	## Compute unnormalized marginals from sepsets
 	# ==============================================================================
 
 	edge_marginals = quote end |> rmlines
@@ -739,15 +714,10 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
 		x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
 
   # ==============================================================================
-  ## Common subexpression elimination
+  ## Finalize algorithm
   # ==============================================================================
-  # algo_cse = CommonSubexpressions.binarize(algo) |> cse
-
-  # # DEBUG
-  # println(algo_cse)
 
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
-
   if last_stage == ForwardPass
     algo = Expr(:block, vcat(obspots,
                              pots,
