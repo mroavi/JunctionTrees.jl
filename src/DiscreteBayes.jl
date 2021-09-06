@@ -764,8 +764,6 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # # DEBUG
   # @btime eval(algo)
 
-  ##
-
   function_name = :compute_marginals
   sig = (Tuple, Tuple)
   variables = [:obsvars, :obsvals]
