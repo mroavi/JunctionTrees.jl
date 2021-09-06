@@ -517,7 +517,7 @@ function computeMarginalsExpr(td_filepath, uai_filepath, uai_evid_filepath;
   # @btime eval(forward_pass) 
 
   # ==============================================================================
-  # # Compute the downstream messages
+  ## Compute the downstream messages
   # ==============================================================================
 
   backward_pass = quote end |> rmlines
