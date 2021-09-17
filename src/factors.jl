@@ -68,6 +68,7 @@ B = marg(A, V)
 ```
 """
 function marg(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
+  ND == 0 && return Factor{Float64,0}((), Array{Float64,0}(undef))
   dims = my_indexin(V, A.vars) # map vars to dims
   r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
   ret_vars = filter(!in(V), A.vars)

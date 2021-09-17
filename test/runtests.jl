@@ -63,6 +63,11 @@ using Test
     @test B.vars == (1, 3)
     @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
+    A = Factor{Float64,0}((), Array{Float64,0}(undef))
+    marg_vars = ()
+    B = marg(A, marg_vars)
+    @test B.vars == A.vars
+
   end
 
   ## Factor reduction
