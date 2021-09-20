@@ -10,8 +10,6 @@ end
 import Base: eltype
 eltype(::Factor{T,N}) where {T,N} = T 
 
-Base.show(io::IO, A::Factor) = print(io, "Factor", A.vars, "[...]")
-
 """
     product(A::Factor, B::Factor)
 
