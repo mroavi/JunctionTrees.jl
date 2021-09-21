@@ -14,7 +14,7 @@ export computeMarginalsExpr,
 
 export LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
-using LightGraphs, MetaGraphs, AbstractTrees, CommonSubexpressions, StaticArrays, MacroTools
+using LightGraphs, MetaGraphs, AbstractTrees, MacroTools
 
 include("factors.jl")
 include("tree.jl")

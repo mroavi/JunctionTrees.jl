@@ -5,9 +5,7 @@ version = "0.1.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
-CommonSubexpressions = "bbf7d656-a473-5ed7-a52c-81e309532950"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
