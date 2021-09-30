@@ -60,14 +60,14 @@ end
 @enum PartialEval EvalMsg DoNotEvalMsg EvalProductOnly
 
 """
-    partial_eval_prop_update!(g, curr_node, prev_node)
+    partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var_marginalized)
 
 Recursive function that invalidates messages in the graph `g` that cannot be
 partially evaluated at compile time. This marking is done using MetaGraphs'
 properties for each edge in the graph.
 
 """
-function partial_eval_prop_update!(g, curr_node, prev_node, obs_node, obs_var_marginalized)
+function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var_marginalized)
   # Get the neighbors except the previous node
   next_nodes = neighbors(g, curr_node) |> x -> setdiff(x, prev_node)
   # Base case
@@ -81,28 +81,28 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_node, obs_var_ma
       # Yes, then invalidate partial evluation for this message
       set_prop!(g, curr_node, next_node, prop_name, DoNotEvalMsg)
       # And call this function recursively with `true` as arg for `obs_var_marginalized`
-      partial_eval_prop_update!(g, next_node, curr_node, obs_node, true)
+      partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
     else
       # No, then check whether the obs var is marginalized in the current msg
       bag_vars = get_prop(g, curr_node, :vars)
       edge_sepset = get_prop(g, curr_node, next_node, :sepset)
       mar_vars = setdiff(bag_vars, edge_sepset)
-      bag_obs_var = get_prop(g, obs_node, :obsvars)[1] # FIXME: [1] is a hack, it assumes ONE obs var per bag
-      partial_eval = get_prop(g, curr_node, next_node, prop_name)
-      # Is the obs var is marginalized in the current message?
-      if bag_obs_var in mar_vars 
+      # Is the obs var marginalized in the current message?
+      if obs_bag_var in mar_vars 
         # and hasn't the current message been invalidated by another obs node?
+        partial_eval = get_prop(g, curr_node, next_node, prop_name)
         if partial_eval != DoNotEvalMsg
           # True, then only partially evaluate the product of the current message
           set_prop!(g, curr_node, next_node, prop_name, EvalProductOnly)
-          # Save the marginalized obsevered variable as a property on the current edge
-          set_prop!(g, curr_node, next_node, :mar_obs_vars, Tuple(bag_obs_var)) # FIXME: assumes ONE obs var per bag (see above)
         end
+        # Save the marginalized obs var together with the msg dir (edge dir) as a prop of the current edge
+        # FIXME: support several mar obs vars per edge by appending obs_bag_var to the var field in the tuple
+        set_prop!(g, curr_node, next_node, :mar_obs_vars, (src=curr_node, dst=next_node, vars=Tuple(obs_bag_var))) 
         # Call this function recursively passing passing `true` as arg for `obs_var_marginalized`
-        partial_eval_prop_update!(g, next_node, curr_node, obs_node, true)
+        partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
       else
         # Otherwise, call this function recursively passing passing `false` as arg for `obs_var_marginalized`
-        partial_eval_prop_update!(g, next_node, curr_node, obs_node, false)
+        partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, false)
       end
     end
   end
@@ -124,65 +124,108 @@ function partial_eval_analysis!(g)
     set_prop!(g, edge.src, edge.dst, prop_name, EvalMsg)
   end
   # Get a list of the bags that have one or more observed vars
-  obs_nodes = filter_vertices(g, :obsvars)
-  # For each observed bag, mark all messages that go from that bag 
-  # to all other bags in the graph as not possible to partially evaluate
-  for obs_node in obs_nodes
-    partial_eval_prop_update!(g, obs_node, [], obs_node, false)
+  obs_bags = filter_vertices(g, :obsvars)
+  # For each observed var in a bag, traverse the graph from the current bag to all 
+  # other bags and analyze whether the msg on each edge can be partially evaluated or not
+  for obs_bag in obs_bags
+    # Get the observed vars in the current bag
+    obs_bag_vars = get_prop(g, obs_bag, :obsvars)
+    # Start the marking process for each observed var (this handles the case of several obs vars per bag)
+    for obs_bag_var in obs_bag_vars
+      partial_eval_prop_update!(g, obs_bag, [], obs_bag_var, false)
+    end
   end
 end
 
 """
-    partially_evaluate(g, msgs, obsvars, obsvals)
+    partially_evaluate(g, before_pass_msgs)
 
 Partially evaluate messages that do not depend on observed variables.
 
 """
+function partially_evaluate(g, before_pass_msgs)
 
-function partially_evaluate(g, msgs, obsvars, obsvals)
+  after_pass_msgs = quote end |> rmlines
 
-  msgs_partially_evaled = quote end |> rmlines
-
-  for ex in msgs.args
-    if @capture(ex, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
+  for before_pass_msg in before_pass_msgs.args
+    if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
       src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
       prop_name = Symbol("pre_eval_msg_", src, "_", dst) # construct property name
       pe_msg_prop = get_prop(g, Edge(src, dst), prop_name) # get the property from graph
-      msg_before_pass = :($var = $f($(fargs...))) # reconstruct the original message assignment
       # Evaluate the entire message?
       if pe_msg_prop == EvalMsg
         # Yes, then eval the message and add the resulting factor to the new expr
-        msg_evaled = eval(msg_before_pass)
-        msg_after_pass = :($var = $msg_evaled) # create assignment expr with evaled msg
+        msg_evaled = eval(before_pass_msg)
+        after_pass_msg = :($var = $msg_evaled) # create assignment expr with evaled msg
       # No, then evaluate the product contained in the message?
       elseif pe_msg_prop == EvalProductOnly
         # Is the first argument of the msg a product operation?
         if @capture(fargs[1], product(pargs__))
-          # Yes, then evaluate it, reduce obsvered var, 
-          # wrap it in the marg operation and add the msg to the new expr
+          # Yes, then evaluate it, wrap it in the marg operation and add the msg to the new expr
           prod_evaled = :(product($(pargs...))) |> eval # eval the product 
-          # TODO: move the injection of the redu statements to a separate pass
-          mar_obs_vars = get_prop(g, Edge(src, dst), :mar_obs_vars) # get the marginalized observed vars
-          indx_mar_obs_vars = indexin(mar_obs_vars, obsvars) # find index of each element in mar_obs_vars in the obsvars array
-          mar_obs_vals = map(i -> :(obsvals[$i]), indx_mar_obs_vars) |> Tuple
-          redu_expr = :(redu($prod_evaled, $(mar_obs_vars), ($(mar_obs_vals...),))) # wrap the evaled prod in the redu expr
-          msg_after_pass = :($var = $f($redu_expr, $(fargs[2:end]...))) # wrap the redu expr in the msg
+          after_pass_msg = :($var = $f($prod_evaled, $(fargs[2:end]...))) # wrap the evaled prod in the msg
         else
           # No, then do not modify the current message
-          msg_after_pass = msg_before_pass
+          after_pass_msg = before_pass_msg
         end
       # No, then do not evaluate anything?
       elseif pe_msg_prop == DoNotEvalMsg
         # Yes, then do not modify the current message
-        msg_after_pass = msg_before_pass
+        after_pass_msg = before_pass_msg
       end
       # Push the msg to the new expr
-      push!(msgs_partially_evaled.args, msg_after_pass)
+      push!(after_pass_msgs.args, after_pass_msg)
       # DEBUG
-      # println("Before PE: ", msg_before_pass, "\n", "After  PE: ", msg_after_pass, "\n")
+      # println("Before PE: ", before_pass_msg, "\n", "After  PE: ", after_pass_msg, "\n")
     end
   end
-  return msgs_partially_evaled
+  return after_pass_msgs
+end
+
+"""
+    inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
+
+Inject a reduction statement for each observed variable. Each reduction takes
+the observed variable and it's corresponding observed value. The reduction
+statements are introduced as late as possible, i.e. just before the observed
+variable is marginalized.
+
+"""
+function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
+
+  after_pass_msgs = quote end |> rmlines
+
+  # Get the messages where one or more observed vars are marginalized
+  mar_obs_msgs = filter_edges(g, :mar_obs_vars) |> # get a list of the edges that have one or more mar obs vars
+    mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> # get the prop that has msg dir
+    mar_obs_msgs -> map(x -> Edge(x.src, x.dst), mar_obs_msgs) # create and store edges with msg dir info
+
+  # @show mar_obs_msgs
+
+  for before_pass_msg in before_pass_msgs.args
+    if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
+      src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
+      # Is the current msg in the set of msgs that have one or more marginalized observed vars?
+      if Edge(src, dst) in mar_obs_msgs
+        # Yes, then add a redu statement right before the marginalization
+        mar_obs_vars = get_prop(g, Edge(src, dst), :mar_obs_vars) |> x -> x.vars # get the marginalized observed vars
+        indx_mar_obs_vars = indexin(mar_obs_vars, obsvars) # find index of each elem in mar_obs_vars in the obsvars array
+        mar_obs_vals = map(i -> :(obsvals[$i]), indx_mar_obs_vars) |> Tuple
+        redu_expr = :(redu($(fargs[1]), $(mar_obs_vars), ($(mar_obs_vals...),))) # wrap the evaled prod in the redu expr
+        after_pass_msg = :($var = $f($redu_expr, $(fargs[2:end]...))) # wrap the redu expr in the msg
+      else
+        # No, then do not add a redu statement
+        after_pass_msg = before_pass_msg
+      end
+    else
+      # The current msg is an evaled factor expr. Add it unmodified to the resulting expr arr
+      after_pass_msg = before_pass_msg
+    end
+    push!(after_pass_msgs.args, after_pass_msg)
+  end
+
+  return after_pass_msgs
+
 end
 
 """
@@ -295,8 +338,8 @@ function computeMarginalsExpr(td_filepath,
   end
 
   # # DEBUG
-  # @show obsvars
-  # @show obsvals
+  # print("  "); @show obsvars
+  # print("  "); @show obsvals
 
   # ==============================================================================
   ## Construct the bags
@@ -498,6 +541,7 @@ function computeMarginalsExpr(td_filepath,
   else
 
     # For each bag
+    # TODO: move this to `inject_redu_statements`.
     for bag in vertices(g)
       pot_var_name = Symbol("pot_", bag)
       # Are there any factors assigned to the current bag?
@@ -546,13 +590,20 @@ function computeMarginalsExpr(td_filepath,
 
     partial_eval_analysis!(g)
 
-    # # DEBUG
+    # # DEBUG: Print `pre_eval_msg_` for each edge in forward pass order
     # for bag in PostOrderDFS(root)
-    #   # Print `pre_eval_msg_` for each edge in DFS post order
     #   parent_bag = Base.parent(root, bag)
     #   isnothing(parent_bag) && break
     #   prop_name = Symbol("pre_eval_msg_", bag.id, "_", parent_bag.id)
     #   println(prop_name, ": ", get_prop(g, bag.id, parent_bag.id, prop_name))
+    # end
+
+    # # DEBUG: Print `pre_eval_msg_` for each edge in backward pass order
+    # for bag in PreOrderDFS(root)
+    #   for child in bag.children
+    #     prop_name = Symbol("pre_eval_msg_", bag.id, "_", child.id)
+    #     println(prop_name, ": ", get_prop(g, bag.id, child.id, prop_name))
+    #   end
     # end
 
   end
@@ -615,20 +666,7 @@ function computeMarginalsExpr(td_filepath,
   # map(bag -> bag.id , PostOrderDFS(root)) |> 
   #   x -> println("\nForward pass visiting order: \n", x)
 
-  # # DEBUG
-  # forward_pass |> println
-
-  # ------------------------------------------------------------------------------
-  ## Partial evaluation
-  # ------------------------------------------------------------------------------
-  if partial_evaluation
-    eval(pots)
-    forward_pass_partially_evaled = partially_evaluate(g, forward_pass, obsvars, obsvals)
-  end
-
-  # DEBUG
-  # forward_pass |> println
-  # partial_evaluation && forward_pass_partially_evaled |> println
+  # @show forward_pass
   # @time eval(forward_pass) 
   # @btime eval(forward_pass) 
 
@@ -703,20 +741,55 @@ function computeMarginalsExpr(td_filepath,
 
   end
 
-  # ------------------------------------------------------------------------------
-  ## Partial evaluation
-  # ------------------------------------------------------------------------------
-  if partial_evaluation
-    backward_pass_partially_evaled = partially_evaluate(g, backward_pass, obsvars, obsvals)
-  end
-
-  # DEBUG
-  # backward_pass |> println
-  # partial_evaluation && backward_pass_partially_evaled |> println
+  # # DEBUG
   # map(bag -> bag.id , PreOrderDFS(root)) |> 
   #   x -> println("Backward pass visiting order: \n", x)
 
-  # println(backward_pass)
+  # @show backward_pass
+
+  # ==============================================================================
+  ## Partial evaluation
+  # ==============================================================================
+
+  if partial_evaluation
+
+    eval(pots)
+    forward_pass_partially_evaled = partially_evaluate(g, forward_pass)
+
+    # # DEBUG
+    # @show forward_pass
+    # @show forward_pass_partially_evaled
+
+    backward_pass_partially_evaled = partially_evaluate(g, backward_pass)
+
+    # # DEBUG
+    # @show backward_pass
+    # @show backward_pass_partially_evaled
+
+  end
+
+
+  # ==============================================================================
+  ## Inject reduce statements
+  # ==============================================================================
+
+  if partial_evaluation
+
+    forward_pass_pe_redu = inject_redu_statements(g, forward_pass_partially_evaled, obsvars, obsvals)
+
+    # # DEBUG
+    # @show forward_pass
+    # @show forward_pass_partially_evaled
+    # @show forward_pass_pe_redu
+
+    backward_pass_pe_redu = inject_redu_statements(g, backward_pass_partially_evaled, obsvars, obsvals)
+
+    # # DEBUG
+    # @show backward_pass
+    # @show backward_pass_partially_evaled
+    # @show backward_pass_pe_redu
+
+  end
 
 	# ==============================================================================
 	## Compute unnormalized marginals from sepsets
@@ -825,27 +898,27 @@ function computeMarginalsExpr(td_filepath,
   if last_stage == ForwardPass
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
+                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
-                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
+                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
+                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
                             )...)
   elseif last_stage == JointMarginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
-                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
+                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
+                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
-                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
+                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
+                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
 														 unnormalized_marginals,
@@ -853,8 +926,8 @@ function computeMarginalsExpr(td_filepath,
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(obspots,
                              pots,
-                             partial_evaluation ? forward_pass_partially_evaled : forward_pass,
-                             partial_evaluation ? backward_pass_partially_evaled : backward_pass,
+                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
+                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
 														 unnormalized_marginals,
@@ -872,10 +945,9 @@ function computeMarginalsExpr(td_filepath,
   sig = (Tuple, Tuple)
   variables = [:obsvars, :obsvals]
   body = algo
-  # body = algo_cse
 
   return generate_function_expression(function_name, sig, variables, body)
-  # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
+
 end
 
 end # module
