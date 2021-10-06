@@ -580,6 +580,22 @@ function computeMarginalsExpr(td_filepath,
   # println(pots)
   # eval(pots)
 
+  # ==============================================================================
+  ## DEBUG: save the message order in edge property
+  # ==============================================================================
+
+  for (i, bag) in enumerate(PostOrderDFS(root))
+    parent_bag = Base.parent(root, bag)
+    isnothing(parent_bag) && break
+    set_prop!(g, Edge(bag.id, parent_bag.id), :up_msg_order, i)
+  end
+
+  for (i, bag) in enumerate(PreOrderDFS(root))
+    for (j, child) in enumerate(bag.children)
+      set_prop!(g, Edge(bag.id, child.id), :down_msg_order, i+j-1)
+    end
+  end
+
   # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
 
   # ==============================================================================
