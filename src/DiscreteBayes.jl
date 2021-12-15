@@ -89,7 +89,7 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
       mar_vars = setdiff(bag_vars, edge_sepset)
       # Is the obs var marginalized in the current message?
       if obs_bag_var in mar_vars 
-        # and hasn't the current message been invalidated by another obs node?
+        # Yes, and hasn't the current message been invalidated by another obs node?
         partial_eval = get_prop(g, curr_node, next_node, prop_name)
         if partial_eval != DoNotEvalMsg
           # True, then only partially evaluate the product of the current message
@@ -101,7 +101,7 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
         # Call this function recursively passing passing `true` as arg for `obs_var_marginalized`
         partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
       else
-        # Otherwise, call this function recursively passing passing `false` as arg for `obs_var_marginalized`
+        # No, then call this function recursively passing passing `false` as arg for `obs_var_marginalized`
         partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, false)
       end
     end
@@ -116,7 +116,7 @@ graph `g`.
 
 """
 function partial_eval_analysis!(g)
-  # Initialize the `pre_eval_` property with `EvalMsg` for all messages (two per edge)
+  # Initialize each edge's `pre_eval_msg_` property with `EvalMsg` for all messages (two per edge)
   for edge in edges(g)
     prop_name = Symbol("pre_eval_msg_", edge.src, "_", edge.dst)
     set_prop!(g, edge.src, edge.dst, prop_name, EvalMsg)
