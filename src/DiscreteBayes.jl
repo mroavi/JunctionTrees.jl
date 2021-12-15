@@ -78,7 +78,7 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
     prop_name = Symbol("pre_eval_msg_", curr_node, "_", next_node)
     # Has the observed variable been marginalized already?
     if obs_var_marginalized
-      # Yes, then invalidate partial evluation for this message
+      # Yes, then invalidate partial evaluation for this message
       set_prop!(g, curr_node, next_node, prop_name, DoNotEvalMsg)
       # And call this function recursively with `true` as arg for `obs_var_marginalized`
       partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
