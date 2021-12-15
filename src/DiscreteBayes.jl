@@ -808,7 +808,7 @@ function computeMarginalsExpr(td_filepath,
   end
 
 	# ==============================================================================
-	## Compute unnormalized marginals from sepsets
+	## Compute unnormalized marginals from sepsets or bags
 	# ==============================================================================
 
 	edge_marginals = quote end |> rmlines
