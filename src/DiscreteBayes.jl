@@ -310,6 +310,9 @@ function computeMarginalsExpr(td_filepath,
   # Extract number of bags, treewidth+1 and number of vertices from solution line
   nbags, treewidth, nvertices = split(lines[1]) |> soln_line->soln_line[3:5] |> x->parse.(Int, x)
 
+  # # DEBUG
+  # @show nbags, treewidth, nvertices
+
   # ==============================================================================
   ## Read the uai evid file if the passed file name is not an empty string
   # ==============================================================================
