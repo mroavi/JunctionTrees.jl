@@ -626,6 +626,10 @@ function computeMarginalsExpr(td_filepath,
     #   end
     # end
 
+    # # DEBUG: print the isconsistent flag for each bag and edge
+    # map(vertex -> ("Vertex $vertex", get_prop(g, vertex, :isconsistent)), vertices(g)) |> display
+    # map(edge -> (edge, get_prop(g, edge, :isconsistent)), edges(g)) |> display
+
   end
 
   # ==============================================================================
