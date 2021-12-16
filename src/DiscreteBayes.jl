@@ -901,6 +901,11 @@ function computeMarginalsExpr(td_filepath,
 		@label continue_with_next_var
 	end
 
+  # # DEBUG
+  # @show edge_marginals
+  # @show bag_marginals
+  # @show unnormalized_marginals
+
 	# Normalize all marginals
 	normalize_marginals_expr =
 		map(x -> x.args[1], unnormalized_marginals.args) |> # get the variable name
