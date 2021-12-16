@@ -200,6 +200,7 @@ function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
     mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> # get the prop that has msg dir
     mar_obs_msgs -> map(x -> Edge(x.src, x.dst), mar_obs_msgs) # create and store edges with msg dir info
 
+  # # DEBUG
   # @show mar_obs_msgs
 
   for before_pass_msg in before_pass_msgs.args
