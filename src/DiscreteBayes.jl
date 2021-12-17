@@ -59,6 +59,9 @@ end
 
 @enum PartialEval EvalMsg DoNotEvalMsg EvalProductOnly
 
+# TODO: If an observed var is present in all clusters then it will not get
+# marginalized in any message computation and hence a reduction statement will
+# never be introduced for it.
 """
     partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var_marginalized)
 
