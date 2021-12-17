@@ -197,12 +197,12 @@ function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
   after_pass_msgs = quote end |> rmlines
 
   # Get the messages where one or more observed vars are marginalized
-  mar_obs_msgs = filter_edges(g, :mar_obs_vars) |> # get a list of the edges that have one or more mar obs vars
-    mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> # get the prop that has msg dir
-    mar_obs_msgs -> map(x -> Edge(x.src, x.dst), mar_obs_msgs) # create and store edges with msg dir info
+  mar_obs_msgs = filter_edges(g, :mar_obs_vars) |> # get a list of edges over which msgs that marginalize obs var pass
+    mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> # get the property value
+    mar_obs_msgs -> map(x -> Edge(x.src, x.dst), mar_obs_msgs) # create and store edges with msg direction info
 
-  # # DEBUG
-  # @show mar_obs_msgs
+  # # DEBUG: display the `:mar_obs_var` property for those edges that have it
+  # filter_edges(g, :mar_obs_vars) |> mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> display
 
   for before_pass_msg in before_pass_msgs.args
     if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
