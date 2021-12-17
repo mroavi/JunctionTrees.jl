@@ -417,6 +417,9 @@ function computeMarginalsExpr(td_filepath,
   # println("\nSepset of each edge:")
   # map(edge -> get_prop(g, edge, :sepset), edges(g)) |> display # sepset of each edge
 
+  # # DEBUG: display empty sepsets
+  # map(edge -> (edge, get_prop(g, edge, :sepset)), edges(g)) |> x -> filter(y -> isempty(y[2]), x) |> display
+
   # ==============================================================================
   ## leaves
   # ==============================================================================
