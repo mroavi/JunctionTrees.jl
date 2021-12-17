@@ -127,6 +127,7 @@ function partial_eval_analysis!(g)
   obs_bags = filter_vertices(g, :obsvars)
   # For each observed var in a bag, traverse the graph from the current bag to all 
   # other bags and analyze whether the msg on each edge can be partially evaluated or not
+  # TODO: account for the fact that empty sepsets stops the influence of observed vars
   for obs_bag in obs_bags
     # Get the observed vars in the current bag
     obs_bag_vars = get_prop(g, obs_bag, :obsvars)
