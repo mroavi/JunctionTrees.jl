@@ -904,7 +904,7 @@ function computeMarginalsExpr(td_filepath,
 		# 1. Search current var in sepsets
 		for edge in edges_ordered
 			sepset = get_prop(g, edge, :sepset)
-      sepset_is_consistent = get_prop(g, edge, :isconsistent)
+      sepset_is_consistent = partial_evaluation ? get_prop(g, edge, :isconsistent) : true
       # Is the current var in the current edge sepset AND is the sepset consistent after evidence has been entered?
       if var in sepset && sepset_is_consistent
 
@@ -938,7 +938,7 @@ function computeMarginalsExpr(td_filepath,
 		# 2. The current var was not found in any edge, then search for it in the bags
 		for bag in bags_ordered
 			bag_vars = get_prop(g, bag, :vars)
-      bag_is_consistent = get_prop(g, bag, :isconsistent)
+      bag_is_consistent = partial_evaluation ? get_prop(g, bag, :isconsistent) : true
       # Is the current var in the current bag and is the bag consistent after evidence has been entered??
       if var in bag_vars && bag_is_consistent
 
