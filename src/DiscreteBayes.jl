@@ -34,6 +34,7 @@ root = Node(1)
 constructTreeDecompositionAbstractTree!(g, root)
 print_tree(root)
 ```
+
 """
 function constructTreeDecompositionAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
 
@@ -86,7 +87,9 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
       # And call this function recursively with `true` as arg for `obs_var_marginalized`
       partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
     else
-      # No, then check whether the obs var is marginalized in the current msg
+      # No, then first mark the current node as not consistent so marginals are not extracted from it
+      set_prop!(g, curr_node, :isconsistent, false)
+      # Then check whether the obs var is marginalized in the current msg
       bag_vars = get_prop(g, curr_node, :vars)
       edge_sepset = get_prop(g, curr_node, next_node, :sepset)
       mar_vars = setdiff(bag_vars, edge_sepset)
@@ -104,7 +107,10 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
         # Call this function recursively passing passing `true` as arg for `obs_var_marginalized`
         partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, true)
       else
-        # No, then call this function recursively passing passing `false` as arg for `obs_var_marginalized`
+        # No, then mark the edge between the current node and the next node as
+        # not consistent so marginals are not extracted from its sepset
+        set_prop!(g, curr_node, next_node, :isconsistent, false)
+        # Then call this function recursively passing passing `false` as arg for `obs_var_marginalized`
         partial_eval_prop_update!(g, next_node, curr_node, obs_bag_var, false)
       end
     end
@@ -126,6 +132,10 @@ function partial_eval_analysis!(g)
     prop_name = Symbol("pre_eval_msg_", edge.dst, "_", edge.src)
     set_prop!(g, edge.src, edge.dst, prop_name, EvalMsg)
   end
+  # Initialize each bag and edge with a consistency flag set to `true`
+  # This flag specifies whether marginals can be extracted from a bag/edge after the evidence has been entered
+  map(bag -> set_prop!(g, bag, :isconsistent, true), vertices(g))
+  map(edge -> set_prop!(g, edge, :isconsistent, true), edges(g))
   # Get a list of the bags that have one or more observed vars
   obs_bags = filter_vertices(g, :obsvars)
   # For each observed var in a bag, traverse the graph from the current bag to all 
@@ -187,7 +197,7 @@ function partially_evaluate(g, before_pass_msgs)
 end
 
 """
-    inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
+    inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
 
 Inject a reduction statement for each observed variable. Each reduction takes
 the observed variable and it's corresponding observed value. The reduction
@@ -195,7 +205,7 @@ statements are introduced as late as possible, i.e. just before the observed
 variable is marginalized.
 
 """
-function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
+function inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
 
   after_pass_msgs = quote end |> rmlines
 
@@ -210,10 +220,12 @@ function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
   for before_pass_msg in before_pass_msgs.args
     if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
       src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
-      # Is the current msg in the set of msgs that have one or more marginalized observed vars?
-      if Edge(src, dst) in mar_obs_msgs
+      # Is the current msg in the set of msgs that marginalize one or more observed vars?
+      # AND is the sepset of the edge through which this msg passes not empty?
+      msg = Edge(src, dst) # create a directed edge that represents the current message
+      if (msg in mar_obs_msgs) && (get_prop(g, msg, :sepset) |> !isempty)
         # Yes, then add a redu statement right before the marginalization
-        mar_obs_vars = get_prop(g, Edge(src, dst), :mar_obs_vars) |> x -> x.vars # get the marginalized observed vars
+        mar_obs_vars = get_prop(g, msg, :mar_obs_vars) |> x -> x.vars # get the marginalized observed vars
         indx_mar_obs_vars = indexin(mar_obs_vars, obsvars) # find index of each elem in mar_obs_vars in the obsvars array
         mar_obs_vals = map(i -> :(obsvals[$i]), indx_mar_obs_vars) |> Tuple
         redu_expr = :(redu($(fargs[1]), $(mar_obs_vars), ($(mar_obs_vals...),))) # wrap the evaled prod in the redu expr
@@ -231,6 +243,42 @@ function inject_redu_statements(g, before_pass_msgs, obsvars, obsvals)
 
   return after_pass_msgs
 
+end
+
+"""
+    inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
+
+Inject a reduction statement for observed variables contained inside isolated
+bags. An isolated bag is a leaf bag connected to the rest of the tree via one
+empty sepset. Each reduction takes the observed variable and it's corresponding
+observed value. 
+
+"""
+function inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
+  after_pass_pots = quote end |> rmlines
+  for before_pass_pot in before_pass_pots.args
+    if @capture(before_pass_pot, var_ = factor_)
+      bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get the bag id from the expr
+      # Does the current bag contain an observed variable?
+      # AND is the current bag isolated? (i.e. a leaf node connected to the rest of the tree via one empty sepset)
+      bag_neighbors = neighbors(g, bag)
+      if has_prop(g, bag, :obsvars) && length(bag_neighbors) == 1 && (get_prop(g, bag, bag_neighbors[1], :sepset) |> isempty)
+        # Yes, then allow marginals to be extracted from this isolated bag
+        set_prop!(g, bag, :isconsistent, true)
+        # Add a redu statement to the current expression
+        bag_obsvars = get_prop(g, bag, :obsvars) |> Tuple
+        indx_bag_obsvars = indexin(bag_obsvars, obsvars) # find index of each elem in mar_obsvars in the obsvars array
+        bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
+        redu_expr = :(redu($(factor), $(bag_obsvars), ($(bag_obsvals...),))) # wrap the evaled prod in the redu expr
+        after_pass_pot = :($var = $redu_expr) # wrap the redu expr in the msg
+      else
+        # No, then do not add a redu statement
+        after_pass_pot = before_pass_pot
+      end
+      push!(after_pass_pots.args, after_pass_pot)
+    end
+  end
+  return after_pass_pots
 end
 
 """
@@ -552,7 +600,7 @@ function computeMarginalsExpr(td_filepath,
   else
 
     # For each bag
-    # TODO: move this to `inject_redu_statements`.
+    # TODO: move this to `inject_redus_in_msgs`.
     for bag in vertices(g)
       pot_var_name = Symbol("pot_", bag)
       # Are there any factors assigned to the current bag?
@@ -808,14 +856,20 @@ function computeMarginalsExpr(td_filepath,
 
   if partial_evaluation
 
-    forward_pass_pe_redu = inject_redu_statements(g, forward_pass_partially_evaled, obsvars, obsvals)
+    pots_redu = inject_redus_in_pots(g, pots, obsvars, obsvals)
+
+    # # DEBUG
+    # @show pots
+    # @show pots_redu
+
+    forward_pass_pe_redu = inject_redus_in_msgs(g, forward_pass_partially_evaled, obsvars, obsvals)
 
     # # DEBUG
     # @show forward_pass
     # @show forward_pass_partially_evaled
     # @show forward_pass_pe_redu
 
-    backward_pass_pe_redu = inject_redu_statements(g, backward_pass_partially_evaled, obsvars, obsvals)
+    backward_pass_pe_redu = inject_redus_in_msgs(g, backward_pass_partially_evaled, obsvars, obsvals)
 
     # # DEBUG
     # @show backward_pass
@@ -850,8 +904,10 @@ function computeMarginalsExpr(td_filepath,
 		# 1. Search current var in sepsets
 		for edge in edges_ordered
 			sepset = get_prop(g, edge, :sepset)
-			# Is the current var in the current edge sepset?
-			if var in sepset
+      sepset_is_consistent = get_prop(g, edge, :isconsistent)
+      # Is the current var in the current edge sepset AND is the sepset consistent after evidence has been entered?
+      if var in sepset && sepset_is_consistent
+
 				# Yes, then 1.1 add edge marginal expr to algo (if not done already) 
 				# and 1.2 add an expr that marginalizes the other vars (unnorm_mar_)
 				edge_mar_var_name = Symbol("edge_mar_", min(edge.src,edge.dst),"_", max(edge.src,edge.dst))
@@ -882,8 +938,9 @@ function computeMarginalsExpr(td_filepath,
 		# 2. The current var was not found in any edge, then search for it in the bags
 		for bag in bags_ordered
 			bag_vars = get_prop(g, bag, :vars)
-			# Is the current var in the current bag?
-			if var in bag_vars
+      bag_is_consistent = get_prop(g, bag, :isconsistent)
+      # Is the current var in the current bag and is the bag consistent after evidence has been entered??
+      if var in bag_vars && bag_is_consistent
 
 				# Yes, then 2.1 add bag marginal expr to algo (if not done already) and 2.2 marginalize the other vars
 				bag_mar_var_name = Symbol("bag_mar_", bag)
@@ -935,18 +992,18 @@ function computeMarginalsExpr(td_filepath,
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
   if last_stage == ForwardPass
     algo = Expr(:block, vcat(obspots,
-                             pots,
+                             partial_evaluation ? pots_redu : pots,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
     algo = Expr(:block, vcat(obspots,
-                             pots,
+                             partial_evaluation ? pots_redu : pots,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
                             )...)
   elseif last_stage == JointMarginals
     algo = Expr(:block, vcat(obspots,
-                             pots,
+                             partial_evaluation ? pots_redu : pots,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
@@ -954,7 +1011,7 @@ function computeMarginalsExpr(td_filepath,
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(obspots,
-                             pots,
+                             partial_evaluation ? pots_redu : pots,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
@@ -963,7 +1020,7 @@ function computeMarginalsExpr(td_filepath,
                             )...)
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(obspots,
-                             pots,
+                             partial_evaluation ? pots_redu : pots,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
