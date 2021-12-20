@@ -282,6 +282,36 @@ function inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
 end
 
 """
+    inject_redus(g, before_pass_pots, obsvars, obsvals)
+
+Inject a reduction expression to potentials that contain observed variables
+
+"""
+function inject_redus(g, before_pass_pots, obsvars, obsvals)
+  after_pass_pots = quote end |> rmlines
+  for before_pass_pot in before_pass_pots.args
+    if @capture(before_pass_pot, var_ = factor_)
+      bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get the bag id from the expr
+      # Does the current bag contain an observed variable?
+      bag_neighbors = neighbors(g, bag)
+      if has_prop(g, bag, :obsvars)
+        # Yes, then reduce the potential based on the observed vars and values
+        bag_obsvars = get_prop(g, bag, :obsvars) |> Tuple
+        indx_bag_obsvars = indexin(bag_obsvars, obsvars) # find index of each elem in mar_obsvars in the obsvars array
+        bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
+        redu_expr = :(redu($(factor), $(bag_obsvars), ($(bag_obsvals...),))) # wrap the evaled prod in the redu expr
+        after_pass_pot = :($var = $redu_expr) # wrap the redu expr in the msg
+      else
+        # No, then do not add a redu statement
+        after_pass_pot = before_pass_pot
+      end
+      push!(after_pass_pots.args, after_pass_pot)
+    end
+  end
+  return after_pass_pots
+end
+
+"""
     generate_function_expression(function_name, sig, variables, body)
 
 Generates a function expression using Julia's metaprogramming capabilities
@@ -573,63 +603,25 @@ function computeMarginalsExpr(td_filepath,
   # map(vertex -> get_prop(g, vertex, :factors), vertices(g)) # factors assigned to each bag
 
   # ==============================================================================
-  ## Compute each bag's potential and, if partial evaluation is disabled,
-  # add a reduction expression to bags that contain observed variables
+  ## Compute each bag's potential 
   # ==============================================================================
 
   pots = quote end |> rmlines
   obspots = quote end |> rmlines
 
-  if partial_evaluation
-
-    # For each bag
-    for bag in vertices(g)
-      # Are there any factors assigned to the current bag?
-      bag_factors = get_prop(g, bag, :factors)
-      if isempty(bag_factors)
-        # No, then assign a "unit" potential to this bag
-        pot = Factor{Float64,0}((), Array{Float64,0}(undef))
-      else
-        # Yes, then compute the product of all potentials assigned to the current bag
-        pot = product(bag_factors...)
-      end
-      pot_var_name = Symbol("pot_", bag)
-      push!(pots.args, :($pot_var_name = $pot))
+  # For each bag
+  for bag in vertices(g)
+    # Are there any factors assigned to the current bag?
+    bag_factors = get_prop(g, bag, :factors)
+    if isempty(bag_factors)
+      # No, then assign a "unit" potential to this bag
+      pot = Factor{Float64,0}((), Array{Float64,0}(undef))
+    else
+      # Yes, then compute the product of all potentials assigned to the current bag
+      pot = product(bag_factors...)
     end
-
-  else
-
-    # For each bag
-    # TODO: move this to `inject_redus_in_msgs`.
-    for bag in vertices(g)
-      pot_var_name = Symbol("pot_", bag)
-      # Are there any factors assigned to the current bag?
-      bag_factors = get_prop(g, bag, :factors)
-      if isempty(bag_factors)
-        # No, then assign a "unit" potential to this bag
-        pot = Factor{Float64,0}((), Array{Float64,0}(undef))
-        push!(pots.args, :($pot_var_name = $pot))
-      else
-        # Yes, then compute the product of all potentials assigned to the current bag
-        pot = product(bag_factors...)
-        # Does the current bag have observed variables?
-        if has_prop(g, bag, :obsvars)
-          # Yes, then reduce the factors based on the observed vars and values
-          bag_obsvars = get_prop(g, bag, :obsvars)
-          indx_bag_obsvars = indexin(bag_obsvars, obsvars)
-          ex_bag_obsvals = map(i -> :(obsvals[$i]), indx_bag_obsvars) |> Tuple
-          ex = 
-            :($pot_var_name = $pot |>
-            x -> redu(x, $(Tuple(bag_obsvars)), ($(ex_bag_obsvals...),))) |>
-            x -> MacroTools.prewalk(rmlines, x)
-          push!(obspots.args, ex)
-        else
-          # No, then no need for reduction
-          push!(pots.args, :($pot_var_name = $pot))
-        end
-      end
-    end
-
+    pot_var_name = Symbol("pot_", bag)
+    push!(pots.args, :($pot_var_name = $pot))
   end
 
   # # DEBUG
@@ -876,6 +868,14 @@ function computeMarginalsExpr(td_filepath,
     # @show backward_pass_partially_evaled
     # @show backward_pass_pe_redu
 
+  else
+
+    pots_redu = inject_redus(g, pots, obsvars, obsvals)
+
+    # # DEBUG
+    # @show pots
+    # @show pots_redu
+
   end
 
 	# ==============================================================================
@@ -992,18 +992,18 @@ function computeMarginalsExpr(td_filepath,
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
   if last_stage == ForwardPass
     algo = Expr(:block, vcat(obspots,
-                             partial_evaluation ? pots_redu : pots,
+                             pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
     algo = Expr(:block, vcat(obspots,
-                             partial_evaluation ? pots_redu : pots,
+                             pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
                             )...)
   elseif last_stage == JointMarginals
     algo = Expr(:block, vcat(obspots,
-                             partial_evaluation ? pots_redu : pots,
+                             pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
@@ -1011,7 +1011,7 @@ function computeMarginalsExpr(td_filepath,
                             )...)
   elseif last_stage == UnnormalizedMarginals
     algo = Expr(:block, vcat(obspots,
-                             partial_evaluation ? pots_redu : pots,
+                             pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
@@ -1020,7 +1020,7 @@ function computeMarginalsExpr(td_filepath,
                             )...)
   elseif last_stage == Marginals
     algo = Expr(:block, vcat(obspots,
-                             partial_evaluation ? pots_redu : pots,
+                             pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
