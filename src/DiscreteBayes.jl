@@ -10,7 +10,8 @@ export computeMarginalsExpr,
   product,
   marg,
   redu,
-  norm
+  norm,
+  getGraph
 
 export LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
@@ -18,6 +19,8 @@ using Graphs, MetaGraphs, AbstractTrees, MacroTools
 
 include("factors.jl")
 include("tree.jl")
+
+getGraph() = @isdefined(g) ? g : nothing
 
 """
     constructTreeDecompositionAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
@@ -432,7 +435,7 @@ function computeMarginalsExpr(td_filepath,
   # ==============================================================================
 
   # Initialize an empty MetaGraph
-  g = MetaGraph()
+  global g = MetaGraph()
 
   # Extract bag definition lines
   bag_lines = lines[2:(2+nbags-1)]
@@ -646,8 +649,6 @@ function computeMarginalsExpr(td_filepath,
       set_prop!(g, Edge(bag.id, child.id), :down_msg_order, i+j-1)
     end
   end
-
-  # return g # TODO: TEMP: uncomment to use with the plotting utilities in Util
 
   # ==============================================================================
   ## Partial evaluation analysis
