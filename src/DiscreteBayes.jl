@@ -287,7 +287,7 @@ end
 """
     inject_redus(g, before_pass_pots, obsvars, obsvals)
 
-Inject a reduction expression to potentials that contain observed variables
+Inject a reduction expression to potentials that contain observed variables.
 
 """
 function inject_redus(g, before_pass_pots, obsvars, obsvals)
@@ -342,47 +342,13 @@ function generate_function_expression(function_name, sig, variables, body)
 	)
 end
 
-@enum LastStage ForwardPass BackwardPass JointMarginals UnnormalizedMarginals Marginals
+"""
+    read_td_file(td_filepath)
+
+Read the td file.
 
 """
-    computeMarginalsExpr(td_filepath,
-                         uai_filepath,
-                         uai_evid_filepath = "";
-                         partial_evaluation = false,
-                         last_stage::LastStage = Marginals)
-
-Construct a tree decomposition graph based on `td_filepath`.
-Assign the factor tables defined in `uai_filepath` to one bag (cluster)
-and mark the observed variables according to `uai_evid_filepath`.
-
-The `td_filepath` file format is defined in:
-https://pacechallenge.org/2017/treewidth/.
-
-The `uai_filepath` file format is defined in:
-http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
-
-The `uai_evid_filepath` file format is defined in :
-http://www.hlt.utdallas.edu/~vgogate/uai14-competition/evidformat.html
-
-# Example
-```
-td_filepath       = "../problems/Promedus_26/Promedus_26.td"
-uai_filepath      = "../problems/Promedus_26/Promedus_26.uai"
-uai_evid_filepath = "../problems/Promedus_26/Promedus_26.evid"
-g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
-```
-"""
-function computeMarginalsExpr(td_filepath,
-                              uai_filepath,
-                              uai_evid_filepath = ""; 
-                              partial_evaluation = false,
-                              last_stage::LastStage = Marginals,
-                              smart_root_selection = true,
-                             )
-
-  # ==============================================================================
-  ## Read the td file
-  # ==============================================================================
+function read_td_file(td_filepath)
 
   # Read the td file into an array of lines
   rawlines = open(td_filepath) do file
@@ -398,9 +364,17 @@ function computeMarginalsExpr(td_filepath,
   # # DEBUG
   # @show nbags, treewidth, nvertices
 
-  # ==============================================================================
-  ## Read the uai evid file if the passed file name is not an empty string
-  # ==============================================================================
+  return lines, nbags, treewidth, nvertices
+
+end
+
+"""
+  read_evid_file(uai_evid_filepath)
+
+Read the uai evid file if the passed file name is not an empty string.
+
+"""
+function read_evid_file(uai_evid_filepath)
 
   if !isempty(uai_evid_filepath)
 
@@ -430,12 +404,17 @@ function computeMarginalsExpr(td_filepath,
   # print("  "); @show obsvars
   # print("  "); @show obsvals
 
-  # ==============================================================================
-  ## Construct the bags
-  # ==============================================================================
+  return obsvars, obsvals
 
-  # Initialize an empty MetaGraph
-  global g = MetaGraph()
+end
+
+"""
+    add_vertices!(g, lines, nbags, obsvars)
+
+Construct the bags
+
+"""
+function add_vertices!(g, lines, nbags, obsvars)
 
   # Extract bag definition lines
   bag_lines = lines[2:(2+nbags-1)]
@@ -475,12 +454,18 @@ function computeMarginalsExpr(td_filepath,
   # map(x -> string(x,": ",get_prop(g,x,:vars)), vertices(g)) |> x -> show(stdout, "text/plain", x)
   # @show filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
 
-  # ==============================================================================
-  ## Construct the edges
-  # ==============================================================================
+end
+
+"""
+    add_edges!(g, lines)
+
+Construct the edges.
+
+"""
+function add_edges!(g, lines)
 
   # Extract edge definition lines
-  edge_lines = lines[(2+nbags):end]
+  edge_lines = lines[(2+nv(g)):end]
 
   # Add each edge to the graph and store the intersection of vars between the bags it connects
   for edge in edge_lines
@@ -504,9 +489,15 @@ function computeMarginalsExpr(td_filepath,
   # # DEBUG: display empty sepsets
   # map(edge -> (edge, get_prop(g, edge, :sepset)), edges(g)) |> x -> filter(y -> isempty(y[2]), x) |> display
 
-  # ==============================================================================
-  ## leaves
-  # ==============================================================================
+end
+
+"""
+    mark_leaves!(g)
+
+Mark which nodes of the graph correspond to leaves using a property.
+
+"""
+function mark_leaves!(g)
 
   map(x -> length(neighbors(g, x)), vertices(g)) |>   # number of neighbors for each bag
     x -> findall(isone, x) |>                         # indices of the leaves
@@ -516,9 +507,53 @@ function computeMarginalsExpr(td_filepath,
   # println("\nLeaf bags:")
   # filter_vertices(g, :isleaf) |> collect |> display
 
-  # ==============================================================================
-  ## Read the factors
-  # ==============================================================================
+end
+
+"""
+    construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath = "")
+
+Construct a tree decomposition graph based on `td_filepath`.
+Assign the factor tables defined in `uai_filepath` to one bag (cluster)
+and mark the observed variables according to `uai_evid_filepath`.
+
+The `td_filepath` file format is defined in:
+https://pacechallenge.org/2017/treewidth/.
+
+The `uai_filepath` file format is defined in:
+http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
+
+The `uai_evid_filepath` file format is defined in :
+http://www.hlt.utdallas.edu/~vgogate/uai14-competition/evidformat.html
+
+# Example
+```
+td_filepath       = "../problems/Promedus_26/Promedus_26.td"
+uai_filepath      = "../problems/Promedus_26/Promedus_26.uai"
+uai_evid_filepath = "../problems/Promedus_26/Promedus_26.evid"
+g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
+```
+"""
+function construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath = "")
+
+  global g = MetaGraph()
+  lines, nbags, treewidth, nvertices = read_td_file(td_filepath)
+  obsvars, obsvals = read_evid_file(uai_evid_filepath)
+  add_vertices!(g, lines, nbags, obsvars)
+  add_edges!(g, lines)
+  # mark_leaves!(g)
+
+  return g, obsvars, obsvals
+
+end
+
+
+"""
+    read_uai_file(uai_filepath)
+
+Read the factors from the UAI file.
+
+"""
+function read_uai_file(uai_filepath)
 
   # Read the uai file into an array of lines
   rawlines = open(uai_filepath) do file
@@ -532,7 +567,7 @@ function computeMarginalsExpr(td_filepath,
   card    = lines[3] |> split |> x -> parse.(Int, x)
   ntables = lines[4] |> x -> parse.(Int, x)
 
-  @assert nvars == nvertices
+  # @assert nvars == nvertices
 
   scopes =
     lines[5:(5+ntables-1)] |>             # extract the factor scope definition lines
@@ -569,9 +604,18 @@ function computeMarginalsExpr(td_filepath,
   # Wrap the tables with their corresponding scopes in an array of Factor type
   factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
-  # ==============================================================================
-  ## Assign each factor to a cluster
-  # ==============================================================================
+  return factors, nvars
+
+end
+
+
+"""
+    assign_factors!(g, factors, smart_root_selection)
+
+Assign each factor to a cluster.
+
+"""
+function assign_factors!(g, factors, smart_root_selection)
 
   if smart_root_selection
     root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
@@ -605,12 +649,19 @@ function computeMarginalsExpr(td_filepath,
   # map(vertex -> get_prop(g, vertex, :vars), vertices(g)) # vars on which each bag depends on
   # map(vertex -> get_prop(g, vertex, :factors), vertices(g)) # factors assigned to each bag
 
-  # ==============================================================================
-  ## Compute each bag's potential 
-  # ==============================================================================
+  return root
+
+end
+
+"""
+    compile_bag_potentials(g)
+
+Compile each bag's potential into a Julia expression.
+
+"""
+function compile_bag_potentials(g)
 
   pots = quote end |> rmlines
-  obspots = quote end |> rmlines
 
   # For each bag
   for bag in vertices(g)
@@ -634,57 +685,34 @@ function computeMarginalsExpr(td_filepath,
   # println(pots)
   # eval(pots)
 
-  # ==============================================================================
-  ## DEBUG: save the message order in edge property
-  # ==============================================================================
+  return pots
+end
 
-  for (i, bag) in enumerate(PostOrderDFS(root))
-    parent_bag = Base.parent(root, bag)
-    isnothing(parent_bag) && break
-    set_prop!(g, Edge(bag.id, parent_bag.id), :up_msg_order, i)
-  end
+"""
+    initialize_td_graph!(g, uai_filepath, smart_root_selection)
 
-  for (i, bag) in enumerate(PreOrderDFS(root))
-    for (j, child) in enumerate(bag.children)
-      set_prop!(g, Edge(bag.id, child.id), :down_msg_order, i+j-1)
-    end
-  end
+Initialize the td graph by assigning the different factors to one bag
+that covers its scope.
 
-  # ==============================================================================
-  ## Partial evaluation analysis
-  # ==============================================================================
+"""
+function initialize_td_graph!(g, uai_filepath, smart_root_selection)
 
-  if partial_evaluation
+  factors, nvars = read_uai_file(uai_filepath)
+  root = assign_factors!(g, factors, smart_root_selection)
+  pots = compile_bag_potentials(g)
 
-    partial_eval_analysis!(g)
+  return root, pots, nvars
 
-    # # DEBUG: Print `pre_eval_msg_` for each edge in forward pass order
-    # for bag in PostOrderDFS(root)
-    #   parent_bag = Base.parent(root, bag)
-    #   isnothing(parent_bag) && break
-    #   prop_name = Symbol("pre_eval_msg_", bag.id, "_", parent_bag.id)
-    #   println(prop_name, ": ", get_prop(g, bag.id, parent_bag.id, prop_name))
-    # end
+end
 
-    # # DEBUG: Print `pre_eval_msg_` for each edge in backward pass order
-    # for bag in PreOrderDFS(root)
-    #   for child in bag.children
-    #     prop_name = Symbol("pre_eval_msg_", bag.id, "_", child.id)
-    #     println(prop_name, ": ", get_prop(g, bag.id, child.id, prop_name))
-    #   end
-    # end
 
-    # # DEBUG: print the isconsistent flag for each bag and edge
-    # map(vertex -> ("Bag $vertex", get_prop(g, vertex, :isconsistent)), vertices(g)) |>
-    #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
-    # map(edge -> (edge, get_prop(g, edge, :isconsistent)), edges(g)) |>
-    #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
+"""
+    compile_forward_pass!(g, root)
 
-  end
+Compile the upstream messages.
 
-  # ==============================================================================
-  ## Compute the upstream message
-  # ==============================================================================
+"""
+function compile_forward_pass!(g, root)
 
   forward_pass = quote end |> rmlines
 
@@ -744,9 +772,17 @@ function computeMarginalsExpr(td_filepath,
   # @time eval(forward_pass) 
   # @btime eval(forward_pass) 
 
-  # ==============================================================================
-  ## Compute the downstream messages
-  # ==============================================================================
+  return forward_pass
+
+end
+
+"""
+    compile_backward_pass!(g, root)
+
+Compile the downstream messages.
+
+"""
+function compile_backward_pass!(g, root)
 
   backward_pass = quote end |> rmlines
 
@@ -821,11 +857,210 @@ function computeMarginalsExpr(td_filepath,
 
   # @show backward_pass
 
+  return backward_pass
+
+end
+
+"""
+    compile_message_propagation!(g, root)
+
+Compile the forward and backward passes of messages.
+
+"""
+function compile_message_propagation!(g, root)
+
+  forward_pass = compile_forward_pass!(g, root)
+  backward_pass = compile_backward_pass!(g, root)
+
+  return forward_pass, backward_pass
+
+end
+
+"""
+    compile_unnormalized_marginals(g, nvars, partial_evaluation)
+
+Compile marginalization statements for each variable from a sepset if possible
+and otherwise from a bag.
+
+"""
+function compile_unnormalized_marginals(g, nvars, partial_evaluation)
+
+  edge_marginals = quote end |> rmlines
+  bag_marginals = quote end |> rmlines
+  unnormalized_marginals = quote end |> rmlines
+
+  # Order edges in ascending order according to the number of vars in the sepset
+  edges_ordered = map(edge -> (edge, length(get_prop(g, edge, :sepset))), edges(g)) |>
+    x -> sort(x, by=y -> y[end]) |>
+    x -> map(y -> y[begin], x)
+
+  # Order bags in ascending order according to their number of vars
+  bags_ordered =
+    map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nv(g)) |>
+    x -> sort(x, by=y -> y[end]) |>
+    x -> map(y -> y[begin], x)
+
+  # For each var in the model
+  for var in 1:nvars 
+    unnorm_mar_var_name = Symbol("unnorm_mar_", var) # variable name for the marginal of the current var
+
+    # 1. Search current var in sepsets
+    for edge in edges_ordered
+      sepset = get_prop(g, edge, :sepset)
+      sepset_is_consistent = partial_evaluation ? get_prop(g, edge, :isconsistent) : true
+      # Is the current var in the current edge sepset AND is the sepset consistent after evidence has been entered?
+      if var in sepset && sepset_is_consistent
+
+        # Yes, then 1.1 add edge marginal expr to algo (if not done already) 
+        # and 1.2 add an expr that marginalizes the other vars (unnorm_mar_)
+        edge_mar_var_name = Symbol("edge_mar_", min(edge.src,edge.dst),"_", max(edge.src,edge.dst))
+        up_msg = get_prop(g, edge, :up_msg)
+        down_msg = get_prop(g, edge, :down_msg)
+        edge_marginal = :($edge_mar_var_name = product($(up_msg.args[1]), $(down_msg.args[1])))
+
+        # 1.1 Has this edge marginal expr already been added to the algo?
+        if !has_prop(g, edge, :marg)
+          # No, then add it
+          push!(edge_marginals.args, edge_marginal)
+          # Mark as added
+          set_prop!(g, edge, :marg, edge_marginal)
+        end
+
+        # 1.2 Marginalize the other vars (if any) and store the resulting expr in the algo
+        mar_vars = setdiff(sepset, var)
+        if isempty(mar_vars) 
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $edge_mar_var_name))
+        else
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(edge_marginal.args[1]), $(mar_vars...))))
+        end
+
+        @goto continue_with_next_var # used to "break" from two nested loops
+      end
+    end
+
+    # 2. The current var was not found in any edge, then search for it in the bags
+    for bag in bags_ordered
+      bag_vars = get_prop(g, bag, :vars)
+      bag_is_consistent = partial_evaluation ? get_prop(g, bag, :isconsistent) : true
+      # Is the current var in the current bag and is the bag consistent after evidence has been entered??
+      if var in bag_vars && bag_is_consistent
+
+        # Yes, then 2.1 add bag marginal expr to algo (if not done already) and 2.2 marginalize the other vars
+        bag_mar_var_name = Symbol("bag_mar_", bag)
+        pot_var_name = Symbol("pot_", bag)
+
+        in_msgs_var_names =
+          get_prop(g, bag, :in_msgs) |>
+          in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) # get in msg variable names
+
+        bag_marginal =
+          vcat(in_msgs_var_names, pot_var_name) |>
+          x -> :($bag_mar_var_name = product($(x...)))
+
+        # 2.1 Has this bag marginal expr already been added to the algo?
+        if !has_prop(g, bag, :marg)
+          push!(bag_marginals.args, bag_marginal) # no, then add it
+          set_prop!(g, bag, :marg, bag_marginal) # mark as added
+        end
+
+        # 2.2 Marginalize the other vars (if any) and store the resulting expr in the algo
+        mar_vars = setdiff(bag_vars, var)
+        if isempty(mar_vars) 
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $bag_mar_var_name))
+        else
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(bag_marginal.args[1]), $(mar_vars...))))
+        end
+
+        @goto continue_with_next_var
+      end
+    end
+
+    @label continue_with_next_var
+  end
+
+  # # DEBUG
+  # @show edge_marginals
+  # @show bag_marginals
+  # @show unnormalized_marginals
+
+  return edge_marginals, bag_marginals, unnormalized_marginals
+
+end
+
+"""
+    compile_normalized_marginals(unnormalized_marginals)
+
+Compile the normalized marginal expressions for each variable in the model.
+
+"""
+function compile_normalized_marginals(unnormalized_marginals)
+
+  # TODO: create empty expr array and return it and modify the code at the bottom of DiscreteBayes.jl
+
+  # Normalize all marginals
+  normalize_marginals_expr =
+    map(x -> x.args[1], unnormalized_marginals.args) |> # get the variable name
+    x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
+
+  return normalize_marginals_expr
+
+end
+
+@enum LastStage ForwardPass BackwardPass JointMarginals UnnormalizedMarginals Marginals
+
+"""
+    computeMarginalsExpr(td_filepath,
+                         uai_filepath,
+                         uai_evid_filepath = "";
+                         partial_evaluation = false,
+                         last_stage::LastStage = Marginals)
+
+Returns and expression containing the computations to compute the marginals
+of all the variables in the model using the junction tree algorithm.
+
+"""
+function computeMarginalsExpr(td_filepath,
+                              uai_filepath,
+                              uai_evid_filepath = ""; 
+                              partial_evaluation = false,
+                              last_stage::LastStage = Marginals,
+                              smart_root_selection = true,
+                             )
+
+  g, obsvars, obsvals = construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath)
+  root, pots, nvars = initialize_td_graph!(g, uai_filepath, smart_root_selection)
+
+  forward_pass, backward_pass = compile_message_propagation!(g, root)
+
   # ==============================================================================
   ## Partial evaluation
   # ==============================================================================
 
   if partial_evaluation
+
+    partial_eval_analysis!(g)
+
+    # # DEBUG: Print `pre_eval_msg_` for each edge in forward pass order
+    # for bag in PostOrderDFS(root)
+    #   parent_bag = Base.parent(root, bag)
+    #   isnothing(parent_bag) && break
+    #   prop_name = Symbol("pre_eval_msg_", bag.id, "_", parent_bag.id)
+    #   println(prop_name, ": ", get_prop(g, bag.id, parent_bag.id, prop_name))
+    # end
+
+    # # DEBUG: Print `pre_eval_msg_` for each edge in backward pass order
+    # for bag in PreOrderDFS(root)
+    #   for child in bag.children
+    #     prop_name = Symbol("pre_eval_msg_", bag.id, "_", child.id)
+    #     println(prop_name, ": ", get_prop(g, bag.id, child.id, prop_name))
+    #   end
+    # end
+
+    # # DEBUG: print the isconsistent flag for each bag and edge
+    # map(vertex -> ("Bag $vertex", get_prop(g, vertex, :isconsistent)), vertices(g)) |>
+    #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
+    # map(edge -> (edge, get_prop(g, edge, :isconsistent)), edges(g)) |>
+    #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
 
     eval(pots)
     forward_pass_partially_evaled = partially_evaluate(g, forward_pass)
@@ -879,112 +1114,23 @@ function computeMarginalsExpr(td_filepath,
 
   end
 
-	# ==============================================================================
-	## Compute unnormalized marginals from sepsets or bags
-	# ==============================================================================
+  edge_marginals, bag_marginals, unnormalized_marginals = compile_unnormalized_marginals(g, nvars, partial_evaluation)
 
-	edge_marginals = quote end |> rmlines
-	bag_marginals = quote end |> rmlines
-	unnormalized_marginals = quote end |> rmlines
-
-	# Order edges in ascending order according to the number of vars in the sepset
-	edges_ordered = map(edge -> (edge, length(get_prop(g, edge, :sepset))), edges(g)) |>
-		x -> sort(x, by=y -> y[end]) |>
-		x -> map(y -> y[begin], x)
-
-	# Order bags in ascending order according to their number of vars
-	bags_ordered =
-		map(bag_id -> (bag_id, length(get_prop(g, bag_id, :vars))), 1:nbags) |>
-		x -> sort(x, by=y -> y[end]) |>
-		x -> map(y -> y[begin], x)
-
-	# For each var in the model
-	for var in 1:nvars 
-		unnorm_mar_var_name = Symbol("unnorm_mar_", var) # variable name for the marginal of the current var
-
-		# 1. Search current var in sepsets
-		for edge in edges_ordered
-			sepset = get_prop(g, edge, :sepset)
-      sepset_is_consistent = partial_evaluation ? get_prop(g, edge, :isconsistent) : true
-      # Is the current var in the current edge sepset AND is the sepset consistent after evidence has been entered?
-      if var in sepset && sepset_is_consistent
-
-				# Yes, then 1.1 add edge marginal expr to algo (if not done already) 
-				# and 1.2 add an expr that marginalizes the other vars (unnorm_mar_)
-				edge_mar_var_name = Symbol("edge_mar_", min(edge.src,edge.dst),"_", max(edge.src,edge.dst))
-				up_msg = get_prop(g, edge, :up_msg)
-				down_msg = get_prop(g, edge, :down_msg)
-				edge_marginal = :($edge_mar_var_name = product($(up_msg.args[1]), $(down_msg.args[1])))
-
-				# 1.1 Has this edge marginal expr already been added to the algo?
-				if !has_prop(g, edge, :marg)
-					# No, then add it
-					push!(edge_marginals.args, edge_marginal)
-					# Mark as added
-					set_prop!(g, edge, :marg, edge_marginal)
-				end
-
-				# 1.2 Marginalize the other vars (if any) and store the resulting expr in the algo
-				mar_vars = setdiff(sepset, var)
-				if isempty(mar_vars) 
-					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $edge_mar_var_name))
-				else
-					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(edge_marginal.args[1]), $(mar_vars...))))
-				end
-
-				@goto continue_with_next_var # used to "break" from two nested loops
-			end
-		end
-
-		# 2. The current var was not found in any edge, then search for it in the bags
-		for bag in bags_ordered
-			bag_vars = get_prop(g, bag, :vars)
-      bag_is_consistent = partial_evaluation ? get_prop(g, bag, :isconsistent) : true
-      # Is the current var in the current bag and is the bag consistent after evidence has been entered??
-      if var in bag_vars && bag_is_consistent
-
-				# Yes, then 2.1 add bag marginal expr to algo (if not done already) and 2.2 marginalize the other vars
-				bag_mar_var_name = Symbol("bag_mar_", bag)
-				pot_var_name = Symbol("pot_", bag)
-
-				in_msgs_var_names =
-					get_prop(g, bag, :in_msgs) |>
-					in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) # get in msg variable names
-
-				bag_marginal =
-					vcat(in_msgs_var_names, pot_var_name) |>
-					x -> :($bag_mar_var_name = product($(x...)))
-
-				# 2.1 Has this bag marginal expr already been added to the algo?
-				if !has_prop(g, bag, :marg)
-					push!(bag_marginals.args, bag_marginal) # no, then add it
-					set_prop!(g, bag, :marg, bag_marginal) # mark as added
-				end
-
-				# 2.2 Marginalize the other vars (if any) and store the resulting expr in the algo
-				mar_vars = setdiff(bag_vars, var)
-				if isempty(mar_vars) 
-					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $bag_mar_var_name))
-				else
-					push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(bag_marginal.args[1]), $(mar_vars...))))
-				end
-
-				@goto continue_with_next_var
-			end
-		end
-
-		@label continue_with_next_var
-	end
-
-  # # DEBUG
-  # @show edge_marginals
-  # @show bag_marginals
-  # @show unnormalized_marginals
-
-	# Normalize all marginals
-	normalize_marginals_expr =
-		map(x -> x.args[1], unnormalized_marginals.args) |> # get the variable name
-		x -> :(norm.([$(x...)])) # create an expression of vector form than normalizes each mar
+  normalize_marginals_expr = compile_normalized_marginals(unnormalized_marginals)
+  
+  # # ==============================================================================
+  # ## DEBUG: save the message order in edge property
+  # # ==============================================================================
+  # for (i, bag) in enumerate(PostOrderDFS(root))
+  #   parent_bag = Base.parent(root, bag)
+  #   isnothing(parent_bag) && break
+  #   set_prop!(g, Edge(bag.id, parent_bag.id), :up_msg_order, i)
+  # end
+  # for (i, bag) in enumerate(PreOrderDFS(root))
+  #   for (j, child) in enumerate(bag.children)
+  #     set_prop!(g, Edge(bag.id, child.id), :down_msg_order, i+j-1)
+  #   end
+  # end
 
   # ==============================================================================
   ## Finalize algorithm
@@ -992,27 +1138,23 @@ function computeMarginalsExpr(td_filepath,
 
   # Concatenate the different expressions corresponding to the Junction Tree algo steps
   if last_stage == ForwardPass
-    algo = Expr(:block, vcat(obspots,
-                             pots_redu,
+    algo = Expr(:block, vcat(pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                             )...)
   elseif last_stage == BackwardPass
-    algo = Expr(:block, vcat(obspots,
-                             pots_redu,
+    algo = Expr(:block, vcat(pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
                             )...)
   elseif last_stage == JointMarginals
-    algo = Expr(:block, vcat(obspots,
-                             pots_redu,
+    algo = Expr(:block, vcat(pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
 														 bag_marginals,
                             )...)
   elseif last_stage == UnnormalizedMarginals
-    algo = Expr(:block, vcat(obspots,
-                             pots_redu,
+    algo = Expr(:block, vcat(pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
@@ -1020,8 +1162,7 @@ function computeMarginalsExpr(td_filepath,
 														 unnormalized_marginals,
                             )...)
   elseif last_stage == Marginals
-    algo = Expr(:block, vcat(obspots,
-                             pots_redu,
+    algo = Expr(:block, vcat(pots_redu,
                              partial_evaluation ? forward_pass_pe_redu : forward_pass,
                              partial_evaluation ? backward_pass_pe_redu : backward_pass,
 														 edge_marginals,
