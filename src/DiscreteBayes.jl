@@ -296,7 +296,6 @@ function inject_redus(g, before_pass_pots, obsvars, obsvals)
     if @capture(before_pass_pot, var_ = factor_)
       bag = split(string(var), "_") |> x -> x[2] |> x -> parse(Int, x) # get the bag id from the expr
       # Does the current bag contain an observed variable?
-      bag_neighbors = neighbors(g, bag)
       if has_prop(g, bag, :obsvars)
         # Yes, then reduce the potential based on the observed vars and values
         bag_obsvars = get_prop(g, bag, :obsvars) |> Tuple
