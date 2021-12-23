@@ -512,14 +512,10 @@ end
     construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath = "")
 
 Construct a tree decomposition graph based on `td_filepath`.
-Assign the factor tables defined in `uai_filepath` to one bag (cluster)
-and mark the observed variables according to `uai_evid_filepath`.
+Mark the observed variables according to `uai_evid_filepath`.
 
 The `td_filepath` file format is defined in:
 https://pacechallenge.org/2017/treewidth/.
-
-The `uai_filepath` file format is defined in:
-http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
 
 The `uai_evid_filepath` file format is defined in :
 http://www.hlt.utdallas.edu/~vgogate/uai14-competition/evidformat.html
@@ -527,12 +523,11 @@ http://www.hlt.utdallas.edu/~vgogate/uai14-competition/evidformat.html
 # Example
 ```
 td_filepath       = "../problems/Promedus_26/Promedus_26.td"
-uai_filepath      = "../problems/Promedus_26/Promedus_26.uai"
 uai_evid_filepath = "../problems/Promedus_26/Promedus_26.evid"
 g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
 ```
 """
-function construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath = "")
+function construct_td_graph(td_filepath, uai_evid_filepath = "")
 
   global g = MetaGraph()
   lines, nbags, treewidth, nvertices = read_td_file(td_filepath)
@@ -550,6 +545,9 @@ end
     read_uai_file(uai_filepath)
 
 Read the factors from the UAI file.
+
+The `uai_filepath` file format is defined in:
+http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
 
 """
 function read_uai_file(uai_filepath)
@@ -611,7 +609,7 @@ end
 """
     assign_factors!(g, factors, smart_root_selection)
 
-Assign each factor to a cluster.
+Assign each factor to a cluster that covers its variables.
 
 """
 function assign_factors!(g, factors, smart_root_selection)
@@ -1026,9 +1024,8 @@ function computeMarginalsExpr(td_filepath,
                               smart_root_selection = true,
                              )
 
-  g, obsvars, obsvals = construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath)
+  g, obsvars, obsvals = construct_td_graph(td_filepath, uai_evid_filepath)
   root, pots, nvars = initialize_td_graph!(g, uai_filepath, smart_root_selection)
-
   forward_pass, backward_pass = compile_message_propagation!(g, root)
 
   # ==============================================================================
