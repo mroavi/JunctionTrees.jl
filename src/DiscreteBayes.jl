@@ -1059,20 +1059,16 @@ function computeMarginalsExpr(td_filepath,
     #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
 
     eval(pots)
-    forward_pass_partially_evaled = partially_evaluate(g, forward_pass)
 
-    # # DEBUG
     # @show forward_pass
-    # @show forward_pass_partially_evaled
+    forward_pass = partially_evaluate(g, forward_pass)
+    # @show forward_pass
 
-    backward_pass_partially_evaled = partially_evaluate(g, backward_pass)
-
-    # # DEBUG
     # @show backward_pass
-    # @show backward_pass_partially_evaled
+    backward_pass = partially_evaluate(g, backward_pass)
+    # @show backward_pass
 
   end
-
 
   # ==============================================================================
   ## Inject reduce statements
@@ -1080,43 +1076,70 @@ function computeMarginalsExpr(td_filepath,
 
   if partial_evaluation
 
-    pots_redu = inject_redus_in_pots(g, pots, obsvars, obsvals)
-
-    # # DEBUG
     # @show pots
-    # @show pots_redu
+    pots = inject_redus_in_pots(g, pots, obsvars, obsvals)
+    # @show pots
 
-    forward_pass_pe_redu = inject_redus_in_msgs(g, forward_pass_partially_evaled, obsvars, obsvals)
-
-    # # DEBUG
     # @show forward_pass
-    # @show forward_pass_partially_evaled
-    # @show forward_pass_pe_redu
+    forward_pass = inject_redus_in_msgs(g, forward_pass, obsvars, obsvals)
+    # @show forward_pass
 
-    backward_pass_pe_redu = inject_redus_in_msgs(g, backward_pass_partially_evaled, obsvars, obsvals)
-
-    # # DEBUG
     # @show backward_pass
-    # @show backward_pass_partially_evaled
-    # @show backward_pass_pe_redu
+    backward_pass = inject_redus_in_msgs(g, backward_pass, obsvars, obsvals)
+    # @show backward_pass
 
   else
 
-    pots_redu = inject_redus(g, pots, obsvars, obsvals)
-
-    # # DEBUG
     # @show pots
-    # @show pots_redu
+    pots = inject_redus(g, pots, obsvars, obsvals)
+    # @show pots
 
   end
 
   edge_marginals, bag_marginals, unnormalized_marginals = compile_unnormalized_marginals(g, nvars, partial_evaluation)
-
   normalize_marginals_expr = compile_normalized_marginals(unnormalized_marginals)
-  
-  # # ==============================================================================
-  # ## DEBUG: save the message order in edge property
-  # # ==============================================================================
+
+  # ==============================================================================
+  ## Finalize algorithm
+  # ==============================================================================
+
+  # Concatenate the different expressions corresponding to the Junction Tree algo steps
+  if last_stage == ForwardPass
+    algo = Expr(:block, vcat(pots,
+                             forward_pass,
+                            )...)
+  elseif last_stage == BackwardPass
+    algo = Expr(:block, vcat(pots,
+                             forward_pass,
+                             backward_pass,
+                            )...)
+  elseif last_stage == JointMarginals
+    algo = Expr(:block, vcat(pots,
+                             forward_pass,
+                             backward_pass,
+														 edge_marginals,
+														 bag_marginals,
+                            )...)
+  elseif last_stage == UnnormalizedMarginals
+    algo = Expr(:block, vcat(pots,
+                             forward_pass,
+                             backward_pass,
+														 edge_marginals,
+														 bag_marginals,
+														 unnormalized_marginals,
+                            )...)
+  elseif last_stage == Marginals
+    algo = Expr(:block, vcat(pots,
+                             forward_pass,
+                             backward_pass,
+														 edge_marginals,
+														 bag_marginals,
+														 unnormalized_marginals,
+														 Expr(:block, normalize_marginals_expr),
+                            )...)
+  end
+
+  # # DEBUG: save the message order in edge property
   # for (i, bag) in enumerate(PostOrderDFS(root))
   #   parent_bag = Base.parent(root, bag)
   #   isnothing(parent_bag) && break
@@ -1127,46 +1150,6 @@ function computeMarginalsExpr(td_filepath,
   #     set_prop!(g, Edge(bag.id, child.id), :down_msg_order, i+j-1)
   #   end
   # end
-
-  # ==============================================================================
-  ## Finalize algorithm
-  # ==============================================================================
-
-  # Concatenate the different expressions corresponding to the Junction Tree algo steps
-  if last_stage == ForwardPass
-    algo = Expr(:block, vcat(pots_redu,
-                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
-                            )...)
-  elseif last_stage == BackwardPass
-    algo = Expr(:block, vcat(pots_redu,
-                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
-                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
-                            )...)
-  elseif last_stage == JointMarginals
-    algo = Expr(:block, vcat(pots_redu,
-                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
-                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
-														 edge_marginals,
-														 bag_marginals,
-                            )...)
-  elseif last_stage == UnnormalizedMarginals
-    algo = Expr(:block, vcat(pots_redu,
-                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
-                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
-														 edge_marginals,
-														 bag_marginals,
-														 unnormalized_marginals,
-                            )...)
-  elseif last_stage == Marginals
-    algo = Expr(:block, vcat(pots_redu,
-                             partial_evaluation ? forward_pass_pe_redu : forward_pass,
-                             partial_evaluation ? backward_pass_pe_redu : backward_pass,
-														 edge_marginals,
-														 bag_marginals,
-														 unnormalized_marginals,
-														 Expr(:block, normalize_marginals_expr),
-                            )...)
-  end
 
   # # DEBUG
   # println(algo)
