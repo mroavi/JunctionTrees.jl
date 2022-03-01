@@ -643,8 +643,8 @@ function assign_factors!(g, factors, smart_root_selection)
   end
 
   # # DEBUG
-  # map(vertex -> get_prop(g, vertex, :vars), vertices(g)) # vars on which each bag depends on
-  # map(vertex -> get_prop(g, vertex, :factors), vertices(g)) # factors assigned to each bag
+  # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :vars)), vertices(g)) # vars on which each bag depends on
+  # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :factors)), vertices(g)) # factors assigned to each bag
 
   return root
 
