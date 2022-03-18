@@ -1,4 +1,4 @@
-name = "DiscreteBayes"
+name = "JunctionTrees"
 uuid = "b732b382-80b5-46a8-aa9c-7d077ae04823"
 authors = ["Martin Roa Villescas <mroavi@gmail.com>"]
 version = "0.1.0"

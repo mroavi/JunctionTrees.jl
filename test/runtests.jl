@@ -1,4 +1,4 @@
-using DiscreteBayes
+using JunctionTrees
 using Test
 
 @testset "factors.jl" begin

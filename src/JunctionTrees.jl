@@ -1,4 +1,4 @@
-module DiscreteBayes
+module JunctionTrees
 
 import Base:
   eltype,
