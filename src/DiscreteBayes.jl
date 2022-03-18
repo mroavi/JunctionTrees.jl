@@ -192,7 +192,7 @@ function partially_evaluate(g, before_pass_msgs)
       end
       # Push the msg to the new expr
       push!(after_pass_msgs.args, after_pass_msg)
-      # DEBUG
+      # DEBUG:
       # println("Before PE: ", before_pass_msg, "\n", "After  PE: ", after_pass_msg, "\n")
     end
   end
@@ -331,6 +331,7 @@ eval(ex)
 
 foo(1, 2.0, Int32(3))
 ```
+
 """
 function generate_function_expression(function_name, sig, variables, body)
 	Expr(:function, 
@@ -347,7 +348,7 @@ end
 Read the td file.
 
 """
-function read_td_file(td_filepath)
+function read_td_file(td_filepath::String)
 
   # Read the td file into an array of lines
   rawlines = open(td_filepath) do file
@@ -358,25 +359,53 @@ function read_td_file(td_filepath)
   lines = filter(x -> !startswith(x, "c"), rawlines)
 
   # Extract number of bags, treewidth+1 and number of vertices from solution line
-  nbags, treewidth, nvertices = split(lines[1]) |> soln_line->soln_line[3:5] |> x->parse.(Int, x)
+  nbags, treewidth, nvertices = split(lines[1]) |> x -> x[3:5] |> x -> parse.(Int, x)
 
-  # # DEBUG
+  # # DEBUG:
   # @show nbags, treewidth, nvertices
 
-  return lines, nbags, treewidth, nvertices
+  # Parse bags and store then in a vector of vectors
+  bags = lines[2:(2+nbags-1)] |>
+    x -> map(split, x) |>
+    x -> map(y -> y[3:end], x) |>
+    x -> map(y -> parse.(Int, y), x)
+
+  @assert length(bags) == nbags
+
+  # # DEBUG:
+  # @show bags
+
+  # Extract edge definition lines
+  edge_lines = lines[(2+nv(g)):end]
+
+  # Parse edges and store then in a vector of vectors
+  edges = lines[(2+nbags):end] |> 
+    x -> map(split, x) |>
+    x -> map(y -> parse.(Int, y), x)
+
+  @assert length(edges) == nbags - 1
+
+  # # DEBUG:
+  # @show edges
+
+  return nbags, treewidth, nvertices, bags, edges
 
 end
 
 """
   read_evid_file(uai_evid_filepath)
 
-Read the uai evid file if the passed file name is not an empty string.
+Read and return the observed variables and values in `uai_evid_filepath`.
+If the passed file is an empty string, return empty vectors.
 
 """
-function read_evid_file(uai_evid_filepath)
+function read_evid_file(uai_evid_filepath::String)
 
-  if !isempty(uai_evid_filepath)
-
+  if isempty(uai_evid_filepath)
+    # No evidence
+    obsvars = []
+    obsvals = []
+  else
     # Read the uai evid file into an array of lines
     line = open(uai_evid_filepath) do file
       readlines(file)
@@ -393,13 +422,9 @@ function read_evid_file(uai_evid_filepath)
     obsvals = observations[2,:] .+ 1
 
     @assert nobsvars == length(obsvars)
-  else
-    # No evidence
-    obsvars = []
-    obsvals = []
   end
 
-  # # DEBUG
+  # # DEBUG:
   # print("  "); @show obsvars
   # print("  "); @show obsvals
 
@@ -408,37 +433,21 @@ function read_evid_file(uai_evid_filepath)
 end
 
 """
-    add_vertices!(g, lines, nbags, obsvars)
+    add_vertices!(g, bags)
 
-Construct the bags
+Construct the bags and initialize its properties.
 
 """
-function add_vertices!(g, lines, nbags, obsvars)
-
-  # Extract bag definition lines
-  bag_lines = lines[2:(2+nbags-1)]
+function add_vertices!(g, bags)
 
   # Add each bag to the graph and initialize its properties
-  for bag in bag_lines
-
-    bag_arr = split(bag)
-
-    @assert bag_arr[1] == "b"
+  for (bag_id, bag) in enumerate(bags)
 
     # Add its corresponding vertex to the graph
     add_vertex!(g)
 
-    # Verify that the bag id (second element in line) is the same as the index of last added vertex
-    bag_id = bag_arr[2] |> x -> parse(Int, x)
-    @assert nv(g) == bag_id
-
-    # Store the variables the bag (cluster) depends on in a property
-    bag_vertices = bag_arr[3:end] |> x -> parse.(Int, x)
-    set_prop!(g, bag_id, :vars, bag_vertices)
-
-    # If any, store the bag's observed vars in a property
-    bag_obsvars = intersect(bag_vertices, obsvars)
-    !isempty(bag_obsvars) && set_prop!(g, bag_id, :obsvars, bag_obsvars)
+    # Store the bag's variables in a property
+    set_prop!(g, bag_id, :vars, bag)
 
     # Create an empty vector of factors
     set_prop!(g, bag_id, :factors, Factor{Float64}[])
@@ -448,29 +457,23 @@ function add_vertices!(g, lines, nbags, obsvars)
 
   end
 
-  # # DEBUG
-  # observations # observed vars with their corresponding value (vars on first row, vals on second row)
+  # # DEBUG: print each bag's vars
   # map(x -> string(x,": ",get_prop(g,x,:vars)), vertices(g)) |> x -> show(stdout, "text/plain", x)
-  # @show filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
 
 end
 
 """
-    add_edges!(g, lines)
+    add_edges!(g, edges)
 
-Construct the edges.
+Construct the edges and store their sepset as an edge property.
 
 """
-function add_edges!(g, lines)
-
-  # Extract edge definition lines
-  edge_lines = lines[(2+nv(g)):end]
+function add_edges!(g, edges)
 
   # Add each edge to the graph and store the intersection of vars between the bags it connects
-  for edge in edge_lines
+  for (edge_src, edge_dst) in edges
 
     # Parse and add the edge to the graph
-    edge_src, edge_dst = split(edge) |> x -> parse.(Int, x)
     add_edge!(g, edge_src, edge_dst)
 
     # Calculate the sepset and set it as an edge's property
@@ -481,19 +484,39 @@ function add_edges!(g, lines)
 
   end
 
-  # # DEBUG
+  # # DEBUG: display sepsets
   # println("\nSepset of each edge:")
-  # map(edge -> get_prop(g, edge, :sepset), edges(g)) |> display # sepset of each edge
+  # map(edge -> get_prop(g, edge, :sepset), Graphs.edges(g)) |> display # sepset of each edge
 
   # # DEBUG: display empty sepsets
-  # map(edge -> (edge, get_prop(g, edge, :sepset)), edges(g)) |> x -> filter(y -> isempty(y[2]), x) |> display
+  # map(edge -> (edge, get_prop(g, edge, :sepset)), Graphs.edges(g)) |> x -> filter(y -> isempty(y[2]), x) |> display
+
+end
+
+"""
+    mark_obsbags!(g, obsvars)
+
+Mark which nodes of `g` have at least one observed variable.
+
+"""
+function mark_obsbags!(g, obsvars)
+
+  for bag in vertices(g)
+    # If any, store the bag's observed vars in a property
+    bag_vars = get_prop(g, bag, :vars)
+    bag_obsvars = intersect(bag_vars, obsvars)
+    !isempty(bag_obsvars) && set_prop!(g, bag, :obsvars, bag_obsvars)
+  end
+
+  # DEBUG:
+  # @show filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
 
 end
 
 """
     mark_leaves!(g)
 
-Mark which nodes of the graph correspond to leaves using a property.
+Mark which nodes of `g` correspond to leaves using a property.
 
 """
 function mark_leaves!(g)
@@ -502,44 +525,36 @@ function mark_leaves!(g)
     x -> findall(isone, x) |>                         # indices of the leaves
     x -> map(y -> set_prop!(g, y, :isleaf, true), x)  # set a property for the leaf bags
 
-  # # DEBUG
+  # # DEBUG:
   # println("\nLeaf bags:")
   # filter_vertices(g, :isleaf) |> collect |> display
 
 end
 
 """
-    construct_td_graph(td_filepath, uai_filepath, uai_evid_filepath = "")
+    construct_td_graph(td_filepath)
 
 Construct a tree decomposition graph based on `td_filepath`.
-Mark the observed variables according to `uai_evid_filepath`.
 
 The `td_filepath` file format is defined in:
 https://pacechallenge.org/2017/treewidth/.
 
-The `uai_evid_filepath` file format is defined in :
-http://www.hlt.utdallas.edu/~vgogate/uai14-competition/evidformat.html
-
 # Example
 ```
-td_filepath       = "../problems/Promedus_26/Promedus_26.td"
-uai_evid_filepath = "../problems/Promedus_26/Promedus_26.evid"
-g = computeMarginalsExpr(td_filepath, uai_evid_filepath)
+td_filepath = "../problems/Promedus_26/Promedus_26.td"
+g = computeMarginalsExpr(td_filepath)
 ```
 """
-function construct_td_graph(td_filepath, uai_evid_filepath = "")
+function construct_td_graph(td_filepath::String)
 
   global g = MetaGraph()
-  lines, nbags, treewidth, nvertices = read_td_file(td_filepath)
-  obsvars, obsvals = read_evid_file(uai_evid_filepath)
-  add_vertices!(g, lines, nbags, obsvars)
-  add_edges!(g, lines)
-  # mark_leaves!(g)
+  nbags, treewidth, nvertices, bags, edges = read_td_file(td_filepath)
+  add_vertices!(g, bags)
+  add_edges!(g, edges)
 
-  return g, obsvars, obsvals
+  return g
 
 end
-
 
 """
     read_uai_file(uai_filepath)
@@ -550,7 +565,7 @@ The `uai_filepath` file format is defined in:
 http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
 
 """
-function read_uai_file(uai_filepath)
+function read_uai_file(uai_filepath::String)
 
   # Read the uai file into an array of lines
   rawlines = open(uai_filepath) do file
@@ -605,7 +620,6 @@ function read_uai_file(uai_filepath)
 
 end
 
-
 """
     assign_factors!(g, factors, smart_root_selection)
 
@@ -626,7 +640,7 @@ function assign_factors!(g, factors, smart_root_selection)
   # Construct an abstract tree using AbstractTrees.jl
   constructTreeDecompositionAbstractTree!(g, root)
 
-  # # DEBUG
+  # # DEBUG:
   # @show root.id
   # println("\nCluster tree:")
   # print_tree(root)
@@ -642,7 +656,7 @@ function assign_factors!(g, factors, smart_root_selection)
     end
   end
 
-  # # DEBUG
+  # # DEBUG:
   # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :vars)), vertices(g)) # vars on which each bag depends on
   # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :factors)), vertices(g)) # factors assigned to each bag
 
@@ -675,10 +689,10 @@ function compile_bag_potentials(g)
     push!(pots.args, :($pot_var_name = $pot))
   end
 
-  # # DEBUG
+  # # DEBUG:
   # map(vertex -> (vertex, get_prop(g, vertex, :pot)), vertices(g)) # potential of each bag
 
-  # DEBUG
+  # DEBUG:
   # println(pots)
   # eval(pots)
 
@@ -692,7 +706,7 @@ Initialize the td graph by assigning the different factors to one bag
 that covers its scope.
 
 """
-function initialize_td_graph!(g, uai_filepath, smart_root_selection)
+function initialize_td_graph!(g, uai_filepath::String, smart_root_selection)
 
   factors, nvars = read_uai_file(uai_filepath)
   root = assign_factors!(g, factors, smart_root_selection)
@@ -701,7 +715,6 @@ function initialize_td_graph!(g, uai_filepath, smart_root_selection)
   return root, pots, nvars
 
 end
-
 
 """
     compile_forward_pass!(g, root)
@@ -756,12 +769,12 @@ function compile_forward_pass!(g, root)
     # Push the current up message expression to the algo expression
     push!(forward_pass.args, up_msg)
 
-    # # DEBUG
+    # # DEBUG:
     # println(up_msg)
 
   end
 
-  # # DEBUG
+  # # DEBUG:
   # map(bag -> bag.id , PostOrderDFS(root)) |> 
   #   x -> println("\nForward pass visiting order: \n", x)
 
@@ -841,14 +854,14 @@ function compile_backward_pass!(g, root)
       # Push the up message expression to the backward pass expression
       push!(backward_pass.args, down_msg)
 
-      # # DEBUG
+      # # DEBUG:
       # println(down_msg)
 
     end
 
   end
 
-  # # DEBUG
+  # # DEBUG:
   # map(bag -> bag.id , PreOrderDFS(root)) |> 
   #   x -> println("Backward pass visiting order: \n", x)
 
@@ -975,7 +988,7 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
     @label continue_with_next_var
   end
 
-  # # DEBUG
+  # # DEBUG:
   # @show edge_marginals
   # @show bag_marginals
   # @show unnormalized_marginals
@@ -992,7 +1005,7 @@ Compile the normalized marginal expressions for each variable in the model.
 """
 function compile_normalized_marginals(unnormalized_marginals)
 
-  # TODO: create empty expr array and return it and modify the code at the bottom of DiscreteBayes.jl
+  # TODO: create empty expr array and return it and modify the code at the bottom of this file
 
   # Normalize all marginals
   normalize_marginals_expr =
@@ -1016,15 +1029,17 @@ Returns and expression containing the computations to compute the marginals
 of all the variables in the model using the junction tree algorithm.
 
 """
-function computeMarginalsExpr(td_filepath,
-                              uai_filepath,
-                              uai_evid_filepath = ""; 
-                              partial_evaluation = false,
+function computeMarginalsExpr(td_filepath::String,
+                              uai_filepath::String,
+                              uai_evid_filepath::String = ""; 
+                              partial_evaluation::Bool = false,
                               last_stage::LastStage = Marginals,
-                              smart_root_selection = true,
+                              smart_root_selection::Bool = true,
                              )
 
-  g, obsvars, obsvals = construct_td_graph(td_filepath, uai_evid_filepath)
+  g = construct_td_graph(td_filepath)
+  obsvars, obsvals = read_evid_file(uai_evid_filepath)
+  mark_obsbags!(g, obsvars)
   root, pots, nvars = initialize_td_graph!(g, uai_filepath, smart_root_selection)
   forward_pass, backward_pass = compile_message_propagation!(g, root)
 
@@ -1151,10 +1166,10 @@ function computeMarginalsExpr(td_filepath,
   #   end
   # end
 
-  # # DEBUG
+  # # DEBUG:
   # println(algo)
 
-  # # DEBUG
+  # # DEBUG:
   # @btime eval(algo)
 
   function_name = :compute_marginals
