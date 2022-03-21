@@ -45,3 +45,42 @@ Base.IteratorEltype(::Type{<:TreeIterator{Node{T}}}) where T = Base.HasEltype()
 
 Base.parent(root::Node, node::Node) = isdefined(node, :parent) ? node.parent : nothing
 
+"""
+    convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
+
+Construct a tree decomposition abstract tree based on the graph `g` using
+`root` as the root node.
+
+# Example
+```
+using LightGraphs
+
+g = double_binary_tree(3)
+root = Node(1)
+convertToAbstractTree!(g, root)
+print_tree(root)
+```
+
+"""
+function convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
+
+  # Is the parent node the root?
+  if root === parent
+    # Yes, then include all parent's neighbors in the children set
+    children_ids = neighbors(g, parent.id)
+  else
+    # No, then include all parent's neighbors except its parent in the children set
+    grandparent = Base.parent(root, parent)
+    children_ids = neighbors(g, parent.id) |> x -> setdiff(x, grandparent.id)
+  end
+
+  # Base case
+  length(children_ids) == 0 && return
+
+  children = addchildren!(children_ids, parent)
+  map(child -> convertToAbstractTree!(g, root, child), children)
+
+  return
+
+end
+
