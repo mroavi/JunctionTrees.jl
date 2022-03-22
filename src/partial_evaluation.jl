@@ -144,8 +144,8 @@ Mark which nodes of `g` have at least one observed variable.
 """
 function mark_obsbags!(g, obsvars)
 
+  # If any, store the bag's observed vars in a property
   for bag in vertices(g)
-    # If any, store the bag's observed vars in a property
     bag_vars = get_prop(g, bag, :vars)
     bag_obsvars = intersect(bag_vars, obsvars)
     !isempty(bag_obsvars) && set_prop!(g, bag, :obsvars, bag_obsvars)
@@ -153,6 +153,53 @@ function mark_obsbags!(g, obsvars)
 
   # DEBUG:
   # @show filter_vertices(g, :obsvars) |> collect # bags that contain at least one observed var
+
+end
+
+"""
+    partial_evaluation(td, forward_pass, backward_pass)
+
+Partially evaluates messages of the propagation stage that do not depend on
+online observations.
+
+"""
+function partial_evaluation(td, pots, forward_pass, backward_pass)
+
+  partial_eval_analysis!(td)
+
+  # # DEBUG: Print `pre_eval_msg_` for each edge in forward pass order
+  # for bag in PostOrderDFS(root)
+  #   parent_bag = Base.parent(root, bag)
+  #   isnothing(parent_bag) && break
+  #   prop_name = Symbol("pre_eval_msg_", bag.id, "_", parent_bag.id)
+  #   println(prop_name, ": ", get_prop(td, bag.id, parent_bag.id, prop_name))
+  # end
+
+  # # DEBUG: Print `pre_eval_msg_` for each edge in backward pass order
+  # for bag in PreOrderDFS(root)
+  #   for child in bag.children
+  #     prop_name = Symbol("pre_eval_msg_", bag.id, "_", child.id)
+  #     println(prop_name, ": ", get_prop(td, bag.id, child.id, prop_name))
+  #   end
+  # end
+
+  # # DEBUG: print the isconsistent flag for each bag and edge
+  # map(vertex -> ("Bag $vertex", get_prop(td, vertex, :isconsistent)), vertices(td)) |>
+  #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
+  # map(edge -> (edge, get_prop(td, edge, :isconsistent)), edges(td)) |>
+  #   x -> show(IOContext(stdout, :limit=>false), MIME"text/plain"(), x)
+
+  eval(pots)
+
+  # @show forward_pass
+  forward_pass = partially_evaluate(td, forward_pass)
+  # @show forward_pass
+
+  # @show backward_pass
+  backward_pass = partially_evaluate(td, backward_pass)
+  # @show backward_pass
+
+  return forward_pass, backward_pass
 
 end
 

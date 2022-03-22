@@ -30,10 +30,10 @@ end
 """
     read_uai_file(uai_filepath)
 
-Read the factors from the UAI file.
+Parses a problem instance defined in the UAI model format.
 
-The `uai_filepath` file format is defined in:
-http://www.hlt.utdallas.edu/~vgogate/uai14-competition/modelformat.html
+The UAI file format is defined in:
+https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 
 """
 function read_uai_file(uai_filepath::String)
@@ -92,8 +92,8 @@ end
 """
   read_uai_evid_file(uai_evid_filepath)
 
-Read and return the observed variables and values in `uai_evid_filepath`.
-If the passed file is an empty string, return empty vectors.
+Returns the observed variables and values in `uai_evid_filepath`. If the passed
+file path is an empty string, return empty vectors.
 
 """
 function read_uai_evid_file(uai_evid_filepath::String)
@@ -132,7 +132,10 @@ end
 """
     read_td_file(td_filepath)
 
-Read the td file.
+Parses a tree decomposition instance described the PACE format.
+
+The PACE file format is defined in:
+https://pacechallenge.org/2017/treewidth/
 
 """
 function read_td_file(td_filepath::String)
@@ -179,10 +182,10 @@ end
 """
     mark_leaves!(g)
 
-Mark which nodes of `g` correspond to leaves using a property.
+Marks which nodes of `g` correspond to leaves using a property.
 
 """
-function mark_leaves!(g)
+function mark_leaves!(g::MetaGraph)
 
   map(x -> length(neighbors(g, x)), vertices(g)) |>   # number of neighbors for each bag
     x -> findall(isone, x) |>                         # indices of the leaves
@@ -191,6 +194,27 @@ function mark_leaves!(g)
   # # DEBUG:
   # println("\nLeaf bags:")
   # filter_vertices(g, :isleaf) |> collect |> display
+
+end
+
+"""
+    construct_mrf_graph(nvars, factors)
+
+Constructs a Markov random field graph with `nvars` variables and the cliques
+contained in `factors`.
+
+"""
+function construct_mrf_graph(nvars, factors)
+
+  mrf = MetaGraph(Graph(nvars))
+
+  # Add edges
+  for factor in factors
+    combinations(factor.vars, 2) |> # 2-element combinations of the variables in `factor`
+      edges -> map(edge -> add_edge!(mrf, edge[1], edge[2]), edges)
+  end
+
+  return mrf
 
 end
 

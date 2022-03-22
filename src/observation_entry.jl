@@ -90,6 +90,7 @@ Inject a reduction expression to potentials that contain observed variables.
 
 """
 function inject_redus(g, before_pass_pots, obsvars, obsvals)
+  # @show before_pass_pots
   after_pass_pots = quote end |> rmlines
   for before_pass_pot in before_pass_pots.args
     if @capture(before_pass_pot, var_ = factor_)
@@ -109,6 +110,43 @@ function inject_redus(g, before_pass_pots, obsvars, obsvals)
       push!(after_pass_pots.args, after_pass_pot)
     end
   end
+  # @show after_pass_pots
   return after_pass_pots
+end
+
+
+"""
+    inject_redus(g,
+                 before_pass_pots,
+                 before_pass_forward_pass,
+                 before_pass_backward_pass,
+                 obsvars,
+                 obsvals)
+
+Inject a reduction expression to potentials that contain observed variables.
+
+"""
+function inject_redus(td,
+                      before_pass_pots,
+                      before_pass_forward_pass,
+                      before_pass_backward_pass,
+                      obsvars,
+                      obsvals
+                     )
+
+  # @show pots
+  pots = inject_redus_in_pots(td, before_pass_pots, obsvars, obsvals)
+  # @show pots
+
+  # @show forward_pass
+  forward_pass = inject_redus_in_msgs(td, before_pass_forward_pass, obsvars, obsvals)
+  # @show forward_pass
+
+  # @show backward_pass
+  backward_pass = inject_redus_in_msgs(td, before_pass_backward_pass, obsvars, obsvals)
+  # @show backward_pass
+
+  return pots, forward_pass, backward_pass
+
 end
 

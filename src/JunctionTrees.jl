@@ -15,12 +15,12 @@ export computeMarginalsExpr,
 
 export LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
-using Graphs, MetaGraphs, AbstractTrees, MacroTools
+using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics, DataStructures
 
 include("factors.jl")
 include("tree.jl")
 include("utils.jl")
-include("jta.jl")
+include("junction_tree_algorithm.jl")
 include("graphical_transformation.jl")
 include("initialization.jl")
 include("observation_entry.jl")

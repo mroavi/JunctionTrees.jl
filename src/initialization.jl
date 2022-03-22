@@ -23,6 +23,9 @@ function assign_factors!(g, factors, smart_root_selection)
   # println("\nCluster tree:")
   # print_tree(root)
 
+  # Initialize an empty vector of factors for each bag
+  map( bag_id -> set_prop!(g, bag_id, :factors, Factor{Float64}[]), vertices(g))
+
   # Traverse the tree in postorder and assign each factor to a bag (cluster) that
   # 1) covers its vars and 2) is closest to a leaf
   for factor in factors
@@ -84,13 +87,12 @@ Initialize the td graph by assigning the different factors to one bag
 that covers its scope.
 
 """
-function initialize_td_graph!(g, uai_filepath::String, smart_root_selection)
+function initialize_td_graph!(g, factors, smart_root_selection)
 
-  nvars, cards, ntables, factors = read_uai_file(uai_filepath)
   root = assign_factors!(g, factors, smart_root_selection)
   pots = compile_bag_potentials(g)
 
-  return root, pots, nvars
+  return root, pots
 
 end
 
