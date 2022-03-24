@@ -1,0 +1,13 @@
+<p align="center">
+<img width="700px" src="https://user-images.githubusercontent.com/19517248/159623939-1863d00c-3a45-42a4-b50d-a088188bec85.png"/>
+</p>
+
+JunctionTrees is a metaprogramming-based implementation in Julia of the
+[junction tree
+algorithm](https://en.wikipedia.org/wiki/Junction_tree_algorithm).
+
+```julia
+] add JunctionTrees
+```
+
+See the [documentation](https://TODO/) to learn more about this package.
