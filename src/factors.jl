@@ -1,7 +1,9 @@
 """
+$(TYPEDEF)
+$(TYPEDFIELDS)
+
 A composite type that implements the factor datatype.
 """
-
 struct Factor{T,N}
   vars::NTuple{N,Int64}
   vals::Array{T,N}
@@ -11,7 +13,7 @@ import Base: eltype
 eltype(::Factor{T,N}) where {T,N} = T 
 
 """
-    product(A::Factor, B::Factor)
+$(TYPEDSIGNATURES)
 
 Compute a factor product of tables `A` and `B`.
 
@@ -39,18 +41,28 @@ function product(A::Factor{T}, B::Factor{T}) where T
   _product(A_vals_new, B_vals_new, Tuple(C_vars))
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Performance critical code of the factor product operation.
+"""
 function _product(A_vals_new, B_vals_new, C_vars)
   Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Compute a factor product of an arbitrary number of factor arguments.
+"""
 function product(F::Vararg{Factor{T}}) where T
   reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
 end
 
 """
-    marg(A::Factor, V::Ntuple{N,Int64})
+$(TYPEDSIGNATURES)
 
-Sum out the variables inside `V` from factor A.
+Sum out the variables in `V` from factor A.
 
 # Examples
 ```julia
@@ -73,8 +85,19 @@ function marg(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
   r_vals = similar(A.vals, r_size)
   _marg(r_vals, ret_vars, A.vals,dims)
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Sum out an aribitrary number of variables from factor A.
+"""
 marg(A::Factor, V::Int...) = marg(A, V)
 
+"""
+$(TYPEDSIGNATURES)
+
+Optimzed version of the function `indexin` defined in `Base`.
+"""
 function my_indexin(x,y)
   indxs = Vector{eltype(x)}(undef, length(x))
   curr = 1
@@ -90,13 +113,18 @@ function my_indexin(x,y)
   indxs
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Performance critical code of the factor marginalization operation.
+"""
 function _marg(r_vals,ret_vars,Avals,dims)
   ret_vals = sum!(r_vals, Avals) |> x -> dropdims(x, dims=Tuple(dims))
   Factor{eltype(Avals),length(ret_vars)}(ret_vars, ret_vals)
 end
 
 """
-    redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
+$(TYPEDSIGNATURES)
 
 Reduce/invalidate all entries that are not consitent with the evidence.
 
@@ -119,7 +147,7 @@ function redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
 end
 
 """
-    norm(A::Factor)
+$(TYPEDSIGNATURES)
 
 Normalize the values in Factor A such that all probabilities lie between 0
 and 1.
@@ -133,4 +161,3 @@ B = norm(A)
 function norm(A::Factor)
   return Factor(A.vars, A.vals ./ sum(A.vals))
 end
-

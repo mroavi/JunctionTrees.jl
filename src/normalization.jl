@@ -1,8 +1,7 @@
 """
-    compile_normalized_marginals(unnormalized_marginals)
+$(TYPEDSIGNATURES)
 
 Compile the normalized marginal expressions for each variable in the model.
-
 """
 function compile_normalized_marginals(unnormalized_marginals)
 
@@ -14,4 +13,3 @@ function compile_normalized_marginals(unnormalized_marginals)
   return normalize_marginals_expr
 
 end
-

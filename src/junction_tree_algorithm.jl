@@ -1,14 +1,25 @@
-@enum LastStage ForwardPass BackwardPass JointMarginals UnnormalizedMarginals Marginals
+"""
+Enumerated type used to select up to which stage an expression of the junction
+tree algorithm should be returned.
+"""
+@enum LastStage begin
+  ForwardPass
+  BackwardPass
+  JointMarginals
+  UnnormalizedMarginals
+  Marginals
+end
+@doc "Return an expression up to and including the forward pass." ForwardPass
+@doc "Return an expression up to and including the backward pass." BackwardPass
+@doc "Return an expression that computes the cluster joint marginals." JointMarginals
+@doc "Return an expression that computes the joint marginals." UnnormalizedMarginals
+@doc "Return an expression that computes the posterior marginals." Marginals
 
 """
-    computeMarginalsExpr(td_filepath,
-                         uai_filepath,
-                         uai_evid_filepath = "";
-                         apply_partial_evaluation = false,
-                         last_stage::LastStage = Marginals)
+$(TYPEDSIGNATURES)
 
-Returns an expression containing the computations to compute the marginals
-of all the variables in the model using the junction tree algorithm.
+Return an expression containing the computations to compute the marginals of
+all the variables in the model using the junction tree algorithm.
 
 """
 function computeMarginalsExpr(uai_filepath::String;
@@ -123,4 +134,3 @@ function computeMarginalsExpr(uai_filepath::String;
   return generate_function_expression(function_name, sig, variables, body)
 
 end
-

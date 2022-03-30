@@ -1,8 +1,7 @@
 """
-    add_vertices!(g, bags)
+$(TYPEDSIGNATURES)
 
-Construct the bags and initialize its properties.
-
+Add a vertex for each bag and initialize its properties.
 """
 function add_vertices!(g, bags)
 
@@ -20,10 +19,9 @@ function add_vertices!(g, bags)
 end
 
 """
-    add_edges!(g, edges)
+$(TYPEDSIGNATURES)
 
 Construct the edges and store their sepset as an edge property.
-
 """
 function add_edges!(g, edges)
 
@@ -51,7 +49,7 @@ function add_edges!(g, edges)
 end
 
 """
-    construct_td_graph(td_filepath)
+$(TYPEDSIGNATURES)
 
 Construct a tree decomposition graph based on `td_filepath`.
 
@@ -81,9 +79,9 @@ end
 # ------------------------------------------------------------------------------
 
 """
-    count_edges_to_be_added(g, v)
+$(TYPEDSIGNATURES)
 
-Computes the number of edges to be added to the graph if we choose to eliminate
+Compute the number of edges to be added to the graph if we choose to eliminate
 this vertex.
 # Arguments
 - `g::MetaGraph` the graph to consider.
@@ -102,42 +100,39 @@ function count_edges_to_be_added(g::MetaGraph, v::Int64)::Int64
 end
 
 """
-    weight(g, bag, cards)
+$(TYPEDSIGNATURES)
 
-Computes the product of the cardinalities of `bag` constituent vars.
-
+Compute the product of the cardinalities of `bag` constituent vars.
 """
 function weight(g, bag::Vector{Int64}, cards)::Int64 
   map(v -> cards[v], bag) |> prod
 end
 
 """
-    get_induced_bag(g, v)
+$(TYPEDSIGNATURES)
 
-Returns the bag induced after removing `v`, i.e. the set of vars consisting of
+Return the bag induced after removing `v`, i.e. the set of vars consisting of
 `v` and its neighbors.
 """
 get_induced_bag(g::MetaGraph, v::Int64) = [v, neighbors(g, v)...] |> sort
 
 """
-    get_induced_bag_weight(g, v, cards)
+$(TYPEDSIGNATURES)
 
-Computes the weight of the bag consisting of v and its neighbors.
-
+Compute the weight of the bag consisting of v and its neighbors.
 """
 get_induced_bag_weight(g::MetaGraph, v::Int64, cards) = weight(g, get_induced_bag(g, v), cards)
 
 """
-    calculate_var_key(g, v, cards)
+$(TYPEDSIGNATURES)
 
-Calculates the "key" of `v` based on:
+Calculate the "key" of `v` based on:
   1. The number of edges to be added if `v`'s neighbors were to be connected.
   2. The weight of `v` and its neighbors (also known as the induced bag).
 The number of edges to be added has more priority than the wieight of the
 induced cluster.
 The lower the number of edges to be added, the lower the key.
 The lower the weight, the lower the key.
-
 """
 function calculate_var_key(g::MetaGraph, v::Int64, cards)::Tuple{Int64, Int64}
   primary_key = count_edges_to_be_added(g, v)
@@ -146,10 +141,9 @@ function calculate_var_key(g::MetaGraph, v::Int64, cards)::Tuple{Int64, Int64}
 end
 
 """
-    is_maximal(clique, clique_set)
+$(TYPEDSIGNATURES)
 
-Returns whether `clique` is maximal in the `clique_set`
-
+Return whether `clique` is maximal in the `clique_set`
 """
 function is_maximal(candidate_clique, cliques)
   for clique in cliques
@@ -159,9 +153,9 @@ function is_maximal(candidate_clique, cliques)
 end
 
 """
-    form_bags(g, cards)
+$(TYPEDSIGNATURES)
 
-Returns the maximal cliques of `g` using the minfill heuristic. The maximal
+Return the maximal cliques of `g` using the minfill heuristic. The maximal
 cliques of the triangulated graph correspond to the bags of the junction tree.
 This implementation is based on: "Inference in Belief Networks: A Procedural
 Guide" by Cecil Huang and Adnan Darwiche (1996) pg. 235.
@@ -184,7 +178,6 @@ Bookkepping example for the `paskin-example` problem:
 
 Variables preceded with `_` use the internal variable indexation. Those without
 use the external/original variable indexation.
-
 """
 function form_bags(g, cards)
 
@@ -257,20 +250,18 @@ end
 # ------------------------------------------------------------------------------
 
 """
-    mass(g, bag1, bag2)
+$(TYPEDSIGNATURES)
 
-Returns the number of vars in the sepset.
-
+Return the number of vars in the sepset.
 """
 function mass(g::MetaGraph, sepset::Vector{Int64})::Int64 
   return length(sepset)
 end
 
 """
-    cost(g, bag, cards)
+$(TYPEDSIGNATURES)
 
-Computes the product of the cardinalities of `bag` constituent vars.
-
+Compute the product of the cardinalities of `bag` constituent vars.
 """
 function cost(g::MetaGraph, sepset::Vector{Int64}, cards)::Int64 
   isempty(sepset) && return 0
@@ -278,16 +269,15 @@ function cost(g::MetaGraph, sepset::Vector{Int64}, cards)::Int64
 end
 
 """
-    calculate_sepset_key(g, sepset, cards)
+$(TYPEDSIGNATURES)
 
-Calculates the "key" of `sepset` based on:
+Calculate the "key" of `sepset` based on:
   1. Mass: The number of variables in `sepset`.
   2. Cost: The product of the cardinality of each variable in `sepset`.
 The number of variables in the sepset has higher priority than the prodcuct of
 their cardinality.
 The higher the mass, the lower the key.
 The lower the cost, the lower the key.
-
 """
 function calculate_sepset_key(g::MetaGraph, sepset::Vector{Int64}, cards)::Tuple{Int64, Int64}
   primary_key = -mass(g, sepset) 
@@ -296,11 +286,10 @@ function calculate_sepset_key(g::MetaGraph, sepset::Vector{Int64}, cards)::Tuple
 end
 
 """
-    preprocess_heap_elements(g, bag1, bag2, cards)
+$(TYPEDSIGNATURES)
 
-Calculates the key for each element that will be inserted into the binary heap
-  and wraps the edge, its sepset and the key into a tuple.
-
+Calculate the key for each element that will be inserted into the binary heap
+and wraps the edge, its sepset and the key into a tuple.
 """
 function preprocess_heap_elements(g::MetaGraph, bag1, bag2, cards)
   endpoints=(bag1[1], bag2[1])
@@ -311,10 +300,9 @@ end
 
 
 """
-    are_connected(g, v1, v2)
+$(TYPEDSIGNATURES)
 
-Returns whether vertices `v1` and `v2` are connected.
-
+Return whether vertices `v1` and `v2` are connected.
 """
 function are_connected(g, v1, v2)
   # Mark all the vertices as not visited
@@ -346,10 +334,9 @@ function are_connected(g, v1, v2)
 end
 
 """
-    connect_bags!(td, mrf, bags, cards)
+$(TYPEDSIGNATURES)
 
-Connects the bags such that the running intersection propperty is satisfied.
-
+Connect the bags such that the running intersection propperty is satisfied.
 """
 function connect_bags!(td::MetaGraph, mrf::MetaGraph, bags::Vector{Vector{Int64}}, cards)
 
@@ -398,12 +385,11 @@ function connect_bags!(td::MetaGraph, mrf::MetaGraph, bags::Vector{Vector{Int64}
 end
 
 """
-    construct_td_graph(mrf, cards)
+$(TYPEDSIGNATURES)
 
-Transforms the given Markov random field into a junction tree.
+Transform the given Markov random field into a junction tree.
 This implementation is based on "Inference in Belief Networks: A Procedural
 Guide" by Cecil Huang and Adnan Darwiche (1996) pg. 235.
-
 """
 function construct_td_graph(mrf, cards)
 
@@ -426,4 +412,3 @@ function construct_td_graph(mrf, cards)
   return td
 
 end
-

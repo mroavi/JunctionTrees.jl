@@ -1,8 +1,7 @@
 """
-    compile_forward_pass!(g, root)
+$(TYPEDSIGNATURES)
 
 Compile the upstream messages.
-
 """
 function compile_forward_pass!(g, root)
 
@@ -69,10 +68,9 @@ function compile_forward_pass!(g, root)
 end
 
 """
-    compile_backward_pass!(g, root)
+$(TYPEDSIGNATURES)
 
 Compile the downstream messages.
-
 """
 function compile_backward_pass!(g, root)
 
@@ -154,10 +152,9 @@ function compile_backward_pass!(g, root)
 end
 
 """
-    compile_message_propagation!(g, root)
+$(TYPEDSIGNATURES)
 
 Compile the forward and backward passes of messages.
-
 """
 function compile_message_propagation!(g, root)
 
@@ -170,4 +167,3 @@ function compile_message_propagation!(g, root)
   return forward_pass, backward_pass
 
 end
-

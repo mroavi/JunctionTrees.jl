@@ -4,12 +4,11 @@
 # marginalized in any message computation and hence a reduction statement will
 # never be introduced for it.
 """
-    partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var_marginalized)
+$(TYPEDSIGNATURES)
 
 Recursive function that invalidates messages in the graph `g` that cannot be
 partially evaluated at compile time. This marking is done using MetaGraphs'
 properties for each edge in the graph.
-
 """
 function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var_marginalized)
   # Get the neighbors except the previous node
@@ -58,11 +57,10 @@ function partial_eval_prop_update!(g, curr_node, prev_node, obs_bag_var, obs_var
 end
 
 """
-    partial_eval_analysis!(g)
+$(TYPEDSIGNATURES)
 
 Analyzes which messages can be computed during the compilation stage in the
 graph `g`.
-
 """
 function partial_eval_analysis!(g)
   # Initialize each edge's `pre_eval_msg_` property with `EvalMsg` for all messages (two per edge)
@@ -92,10 +90,9 @@ function partial_eval_analysis!(g)
 end
 
 """
-    partially_evaluate(g, before_pass_msgs)
+$(TYPEDSIGNATURES)
 
 Partially evaluate messages that do not depend on observed variables.
-
 """
 function partially_evaluate(g, before_pass_msgs)
 
@@ -137,10 +134,9 @@ function partially_evaluate(g, before_pass_msgs)
 end
 
 """
-    mark_obsbags!(g, obsvars)
+$(TYPEDSIGNATURES)
 
 Mark which nodes of `g` have at least one observed variable.
-
 """
 function mark_obsbags!(g, obsvars)
 
@@ -157,11 +153,10 @@ function mark_obsbags!(g, obsvars)
 end
 
 """
-    partial_evaluation(td, forward_pass, backward_pass)
+$(TYPEDSIGNATURES)
 
 Partially evaluates messages of the propagation stage that do not depend on
 online observations.
-
 """
 function partial_evaluation(td, pots, forward_pass, backward_pass)
 
@@ -202,4 +197,3 @@ function partial_evaluation(td, pots, forward_pass, backward_pass)
   return forward_pass, backward_pass
 
 end
-

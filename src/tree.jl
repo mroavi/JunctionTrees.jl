@@ -1,5 +1,11 @@
 # Based on: https://github.com/JuliaCollections/AbstractTrees.jl/tree/master/examples
 
+"""
+$(TYPEDEF)
+$(TYPEDFIELDS)
+
+Tree node definition intended to be used with AbstractTrees.jl.
+"""
 mutable struct Node{T}
   id::T
   children::Vector{Node{T}}
@@ -15,12 +21,22 @@ end
 # Outer constructor that extracts the type from the argument
 Node(id) = Node{typeof(id)}(id)
 
+"""
+$(TYPEDSIGNATURES)
+
+Add a child node with id `id` to `parent`.
+"""
 function addchild!(id, parent::Node)
   node = typeof(parent)(id, parent)
   push!(parent.children, node)
   return node
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Add several children with with ids `ids` to `parent`.
+"""
 function addchildren!(ids, parent::Node)
   nodes = map(id -> typeof(parent)(id, parent), ids)
   append!(parent.children, nodes)
@@ -46,7 +62,7 @@ Base.IteratorEltype(::Type{<:TreeIterator{Node{T}}}) where T = Base.HasEltype()
 Base.parent(root::Node, node::Node) = isdefined(node, :parent) ? node.parent : nothing
 
 """
-    convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
+$(TYPEDSIGNATURES)
 
 Construct a tree decomposition abstract tree based on the graph `g` using
 `root` as the root node.
@@ -60,7 +76,6 @@ root = Node(1)
 convertToAbstractTree!(g, root)
 print_tree(root)
 ```
-
 """
 function convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
 
@@ -83,4 +98,3 @@ function convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
   return
 
 end
-

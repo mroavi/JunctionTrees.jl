@@ -1,11 +1,10 @@
 """
-    inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
+$(TYPEDSIGNATURES)
 
 Inject a reduction statement for each observed variable. Each reduction takes
 the observed variable and it's corresponding observed value. The reduction
 statements are introduced as late as possible, i.e. just before the observed
 variable is marginalized.
-
 """
 function inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
 
@@ -48,13 +47,12 @@ function inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
 end
 
 """
-    inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
+$(TYPEDSIGNATURES)
 
 Inject a reduction statement for observed variables contained inside isolated
 bags. An isolated bag is a leaf bag connected to the rest of the tree via one
 empty sepset. Each reduction takes the observed variable and it's corresponding
 observed value. 
-
 """
 function inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
   after_pass_pots = quote end |> rmlines
@@ -84,10 +82,9 @@ function inject_redus_in_pots(g, before_pass_pots, obsvars, obsvals)
 end
 
 """
-    inject_redus(g, before_pass_pots, obsvars, obsvals)
+$(TYPEDSIGNATURES)
 
 Inject a reduction expression to potentials that contain observed variables.
-
 """
 function inject_redus(g, before_pass_pots, obsvars, obsvals)
   # @show before_pass_pots
@@ -116,15 +113,9 @@ end
 
 
 """
-    inject_redus(g,
-                 before_pass_pots,
-                 before_pass_forward_pass,
-                 before_pass_backward_pass,
-                 obsvars,
-                 obsvals)
+$(TYPEDSIGNATURES)
 
 Inject a reduction expression to potentials that contain observed variables.
-
 """
 function inject_redus(td,
                       before_pass_pots,
@@ -149,4 +140,3 @@ function inject_redus(td,
   return pots, forward_pass, backward_pass
 
 end
-

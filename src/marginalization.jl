@@ -1,9 +1,8 @@
 """
-    compile_unnormalized_marginals(g, nvars, partial_evaluation)
+$(TYPEDSIGNATURES)
 
 Compile marginalization statements for each variable from a sepset if possible
 and otherwise from a bag.
-
 """
 function compile_unnormalized_marginals(g, nvars, partial_evaluation)
 
@@ -108,4 +107,3 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
   return edge_marginals, bag_marginals, unnormalized_marginals
 
 end
-

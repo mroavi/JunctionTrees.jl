@@ -1,7 +1,7 @@
 """
-    generate_function_expression(function_name, sig, variables, body)
+$(TYPEDSIGNATURES)
 
-Generates a function expression using Julia's metaprogramming capabilities
+Generate a function expression using Julia's metaprogramming capabilities
 
 # Example
 ```
@@ -16,7 +16,6 @@ eval(ex)
 
 foo(1, 2.0, Int32(3))
 ```
-
 """
 function generate_function_expression(function_name, sig, variables, body)
   Expr(:function, 
@@ -28,13 +27,13 @@ function generate_function_expression(function_name, sig, variables, body)
 end
 
 """
-    read_uai_file(uai_filepath)
+$(TYPEDSIGNATURES)
 
-Parses a problem instance defined in the UAI model format.
+Parse the problem instance found in `uai_filepath` defined in the UAI model
+format.
 
 The UAI file format is defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
-
 """
 function read_uai_file(uai_filepath::String)
 
@@ -90,11 +89,10 @@ function read_uai_file(uai_filepath::String)
 end
 
 """
-  read_uai_evid_file(uai_evid_filepath)
+$(TYPEDSIGNATURES)
 
-Returns the observed variables and values in `uai_evid_filepath`. If the passed
+Return the observed variables and values in `uai_evid_filepath`. If the passed
 file path is an empty string, return empty vectors.
-
 """
 function read_uai_evid_file(uai_evid_filepath::String)
 
@@ -130,13 +128,12 @@ function read_uai_evid_file(uai_evid_filepath::String)
 end
 
 """
-    read_td_file(td_filepath)
+$(TYPEDSIGNATURES)
 
-Parses a tree decomposition instance described the PACE format.
+Parse a tree decomposition instance described the PACE format.
 
 The PACE file format is defined in:
 https://pacechallenge.org/2017/treewidth/
-
 """
 function read_td_file(td_filepath::String)
 
@@ -180,10 +177,9 @@ function read_td_file(td_filepath::String)
 end
 
 """
-    mark_leaves!(g)
+$(TYPEDSIGNATURES)
 
-Marks which nodes of `g` correspond to leaves using a property.
-
+Mark which nodes of `g` correspond to leaves using a property.
 """
 function mark_leaves!(g::MetaGraph)
 
@@ -198,11 +194,10 @@ function mark_leaves!(g::MetaGraph)
 end
 
 """
-    construct_mrf_graph(nvars, factors)
+$(TYPEDSIGNATURES)
 
-Constructs a Markov random field graph with `nvars` variables and the cliques
+Construct a Markov random field graph with `nvars` variables and the cliques
 contained in `factors`.
-
 """
 function construct_mrf_graph(nvars, factors)
 
@@ -217,4 +212,3 @@ function construct_mrf_graph(nvars, factors)
   return mrf
 
 end
-

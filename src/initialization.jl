@@ -1,8 +1,7 @@
 """
-    assign_factors!(g, factors, smart_root_selection)
+$(TYPEDSIGNATURES)
 
 Assign each factor to a cluster that covers its variables.
-
 """
 function assign_factors!(g, factors, smart_root_selection)
 
@@ -46,10 +45,9 @@ function assign_factors!(g, factors, smart_root_selection)
 end
 
 """
-    compile_bag_potentials(g)
+$(TYPEDSIGNATURES)
 
 Compile each bag's potential into a Julia expression.
-
 """
 function compile_bag_potentials(g)
 
@@ -81,11 +79,10 @@ function compile_bag_potentials(g)
 end
 
 """
-    initialize_td_graph!(g, uai_filepath, smart_root_selection)
+$(TYPEDSIGNATURES)
 
 Initialize the td graph by assigning the different factors to one bag
 that covers its scope.
-
 """
 function initialize_td_graph!(g, factors, smart_root_selection)
 
@@ -95,4 +92,3 @@ function initialize_td_graph!(g, factors, smart_root_selection)
   return root, pots
 
 end
-
