@@ -2,10 +2,13 @@
 <img width="700px" src="https://user-images.githubusercontent.com/19517248/159623939-1863d00c-3a45-42a4-b50d-a088188bec85.png"/>
 </p>
 
-[![][docs-img]][docs-url]
+[![][docs-img]][docs-url] [![][ci-img]][ci-url]
 
 [docs-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-url]: https://mroavi.github.io/JunctionTrees.jl/
+
+[ci-img]: https://github.com/mroavi/JunctionTrees.jl/workflows/CI/badge.svg
+[ci-url]: https://github.com/mroavi/JunctionTrees.jl/actions
 
 JunctionTrees is a metaprogramming-based implementation in Julia of the
 [junction tree
