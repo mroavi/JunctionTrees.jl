@@ -59,7 +59,7 @@ https://pacechallenge.org/2017/treewidth/.
 # Example
 ```
 td_filepath = "../problems/Promedus_26/Promedus_26.td"
-td = computeMarginalsExpr(td_filepath)
+td = compile_algo(td_filepath)
 ```
 """
 function construct_td_graph(td_filepath::String)

@@ -12,13 +12,13 @@ Pages = ["public.md"]
 
 ```@docs
 JunctionTrees
-computeMarginalsExpr
+compile_algo
 Factor
 product
 marg
 redu
 norm
-getGraph
+get_graph
 LastStage
 ForwardPass
 BackwardPass

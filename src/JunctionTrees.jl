@@ -4,7 +4,7 @@ Main module for `JunctionTrees.jl` -- a Julia implementation of the junction tre
 
 One main function is exported from this module for public use:
 
-- [`computeMarginalsExpr`](@ref). Computes the posterior marginals using the
+- [`compile_algo`](@ref). Computes the posterior marginals using the
 junction tree algorithm given evidence.
 
 # Exports
@@ -17,7 +17,7 @@ module JunctionTrees
 using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics,
   DataStructures, DocStringExtensions
 
-export computeMarginalsExpr, Factor, product, marg, redu, norm, getGraph,
+export compile_algo, Factor, product, marg, redu, norm, get_graph,
   LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals,
   Marginals
 
@@ -43,6 +43,6 @@ $(TYPEDSIGNATURES)
 
 Return the current graph.
 """
-getGraph() = @isdefined(g) ? g : nothing
+get_graph() = @isdefined(g) ? g : nothing
 
 end # module

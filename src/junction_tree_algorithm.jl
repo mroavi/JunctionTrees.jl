@@ -22,13 +22,13 @@ Return an expression containing the computations to compute the marginals of
 all the variables in the model using the junction tree algorithm.
 
 """
-function computeMarginalsExpr(uai_filepath::String;
-                              uai_evid_filepath::String = "",
-                              td_filepath::String = "",
-                              apply_partial_evaluation::Bool = false,
-                              last_stage::LastStage = Marginals,
-                              smart_root_selection::Bool = true,
-                             )
+function compile_algo(uai_filepath::String;
+                      uai_evid_filepath::String = "",
+                      td_filepath::String = "",
+                      apply_partial_evaluation::Bool = false,
+                      last_stage::LastStage = Marginals,
+                      smart_root_selection::Bool = true,
+                     )
 
   # Read PGM
   nvars, cards, _, factors = read_uai_file(uai_filepath)
@@ -126,8 +126,8 @@ function computeMarginalsExpr(uai_filepath::String;
   # # DEBUG:
   # @btime eval(algo)
 
-  function_name = :compute_marginals
-  sig = (Tuple, Tuple)
+  function_name = :run_algo
+  sig = (Vector{Int64}, Vector{Int64})
   variables = [:obsvars, :obsvals]
   body = algo
 
