@@ -43,6 +43,6 @@ $(TYPEDSIGNATURES)
 
 Return the current graph.
 """
-get_graph() = @isdefined(g) ? g : nothing
+get_graph() = @isdefined(td) ? td : nothing
 
 end # module
