@@ -98,8 +98,8 @@ function read_uai_evid_file(uai_evid_filepath::String)
 
   if isempty(uai_evid_filepath)
     # No evidence
-    obsvars = []
-    obsvals = []
+    obsvars = Int64[]
+    obsvals = Int64[]
   else
     # Read the uai evid file into an array of lines
     line = open(uai_evid_filepath) do file
