@@ -42,11 +42,11 @@ function compile_algo(uai_filepath::String;
     td = construct_td_graph(td_filepath)
   end
 
-  # Initialization
-  root, pots = initialize_td_graph!(td, factors, smart_root_selection)
-
   # Observation entry
   mark_obsbags!(td, obsvars)
+
+  # Initialization
+  root, pots = initialize_td_graph!(td, factors, smart_root_selection)
 
   # Propagation
   forward_pass, backward_pass = compile_message_propagation!(td, root)

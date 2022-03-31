@@ -18,7 +18,6 @@ product
 marg
 redu
 norm
-get_graph
 LastStage
 ForwardPass
 BackwardPass

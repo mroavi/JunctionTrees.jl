@@ -66,7 +66,7 @@ function construct_td_graph(td_filepath::String)
 
   _, _, _, bags, edges = read_td_file(td_filepath)
 
-  global td = MetaGraph()
+  td = MetaGraph()
   add_vertices!(td, bags)
   add_edges!(td, edges)
 

@@ -17,9 +17,8 @@ module JunctionTrees
 using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics,
   DataStructures, DocStringExtensions
 
-export compile_algo, Factor, product, marg, redu, norm, get_graph,
-  LastStage, ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals,
-  Marginals
+export compile_algo, Factor, product, marg, redu, norm, LastStage, ForwardPass,
+  BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
 import Base:
   eltype,
@@ -37,12 +36,5 @@ include("partial_evaluation.jl")
 include("propagation.jl")
 include("marginalization.jl")
 include("normalization.jl")
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the current graph.
-"""
-get_graph() = @isdefined(td) ? td : nothing
 
 end # module
