@@ -3,16 +3,7 @@ $(TYPEDSIGNATURES)
 
 Assign each factor to a cluster that covers its variables.
 """
-function assign_factors!(g, factors, smart_root_selection)
-
-  if smart_root_selection
-    root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
-  else
-    root = Node(1) # arbitrarily chose Node 1 as root
-  end
-
-  # root = Node(339) # optimal for problem 14
-  set_prop!(g, root.id, :isroot, true)
+function assign_factors!(g, factors, root)
 
   # Construct an abstract tree using AbstractTrees.jl
   convertToAbstractTree!(g, root)
@@ -39,8 +30,6 @@ function assign_factors!(g, factors, smart_root_selection)
   # # DEBUG:
   # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :vars)), vertices(g)) # vars on which each bag depends on
   # map(vertex -> println("Bag $vertex: ", get_prop(g, vertex, :factors)), vertices(g)) # factors assigned to each bag
-
-  return root
 
 end
 
@@ -86,9 +75,28 @@ that covers its scope.
 """
 function initialize_td_graph!(g, factors, smart_root_selection)
 
-  root = assign_factors!(g, factors, smart_root_selection)
+  root = select_rootnode(g, smart_root_selection = smart_root_selection)
+  set_prop!(g, root.id, :isroot, true)
+  assign_factors!(g, factors, root)
   pots = compile_bag_potentials(g)
 
   return root, pots
+
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Select and return the root node of `g`.
+"""
+function select_rootnode(g; smart_root_selection = true)
+
+  if smart_root_selection
+    root = map(v -> get_prop(g, v, :vars) |> length, vertices(g)) |> findmax |> x -> Node(x[2])
+  else
+    root = Node(1) # arbitrarily chose Node 1 as root
+  end
+
+  return root
 
 end
