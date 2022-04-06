@@ -10,12 +10,11 @@
 [ci-img]: https://github.com/mroavi/JunctionTrees.jl/workflows/CI/badge.svg
 [ci-url]: https://github.com/mroavi/JunctionTrees.jl/actions
 
-JunctionTrees is a metaprogramming-based implementation in Julia of the
-[junction tree
+A metaprogramming-based implementation of the [junction tree
 algorithm](https://en.wikipedia.org/wiki/Junction_tree_algorithm).
 
 ```julia
 ] add JunctionTrees
 ```
 
-See the [documentation](https://TODO/) to learn more about this package.
+Please read the [documentation](https://mroavi.github.io/JunctionTrees.jl/dev/). 

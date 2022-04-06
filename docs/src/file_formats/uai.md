@@ -2,11 +2,11 @@
 
 This document defines the following file formats:
 
-- [Model file format](@ref).
-- [Evidence file format](@ref).
-- [Results file format](@ref).
+- [UAI model file format](@ref).
+- [UAI evidence file format](@ref).
+- [UAI results file format](@ref).
 
-## Model file format
+## UAI model file format
 
 We use the simple text file format specified below to describe problem
 instances (Markov networks). The format is a generalization of the Ergo file
@@ -37,9 +37,9 @@ variables and two functions. A sample preamble for such a network is:
     2 1 2
 
 The preamble starts with one line denoting the type of network. Generally, this
-can be either BAYES (if the network is a Bayesian network) or MARKOV (in case
-of a Markov network). However, note that this year all networks will be given
-in a Markov networks (i.e. Bayesian networks will be moralized).
+can be either `BAYES` (if the network is a Bayesian network) or `MARKOV` (in
+case of a Markov network). However, note that this year all networks will be
+given in a Markov networks (i.e. Bayesian networks will be moralized).
 
 The second line contains the number of variables. The next line specifies the
 cardinalities of each variable, one at a time, separated by a whitespace (note
@@ -53,10 +53,10 @@ within a factor will follow the order provided here.
 
 Referring to the example above, the first line denotes the Markov network, the
 second line tells us the problem consists of three variables, let's refer to
-them as X, Y, and Z. Their cardinalities are 2, 2, and 3 respectively (from the
-third line). Line four specifies that there are 2 cliques. The first clique is
-X,Y, while the second clique is Y,Z. Note that variables are indexed starting
-with 0.
+them as `X`, `Y`, and `Z`. Their cardinalities are 2, 2, and 3 respectively
+(from the third line). Line four specifies that there are 2 cliques. The first
+clique is `X,Y`, while the second clique is `Y,Z`. Note that variables are
+indexed starting with 0.
 
 #### Function tables 
 
@@ -131,29 +131,29 @@ above, the full file will look like:
     0.210 0.333 0.457
     0.811 0.000 0.189 
 
-## Evidence file format
+## UAI evidence file format
 
 Evidence is specified in a separate file. This file has the same name as the
-original network file but with an added .evid suffix. For instance, problem.uai
-will have evidence in problem.uai.evid. The file starts with a line specifying
-the number of evidences samples. The evidence in each sample, will be written
-in a new line. Each line will begin with the number of observed variables in
-the sample, followed by pairs of variable and its observed value. The indexes
-correspond to the ones implied by the original problem file. If, for our above
-example, we want to provide a single sample where the variable Y has been
-observed as having its first value and Z with its second value, the file
-example.uai.evid would contain the following:
+original network file but with an added *.evid* suffix. For instance,
+*problem.uai* will have evidence in *problem.uai.evid*. The file starts with a
+line specifying the number of evidences samples. The evidence in each sample,
+will be written in a new line. Each line will begin with the number of observed
+variables in the sample, followed by pairs of variable and its observed value.
+The indexes correspond to the ones implied by the original problem file. If,
+for our above example, we want to provide a single sample where the variable Y
+  has been observed as having its first value and Z with its second value, the
+  file *example.uai.evid* would contain the following:
 
     1
     2 1 0 2 1
 
-## Results file format
+## UAI results file format
 
-The first line must contain only the task solved: PR|MPE|MAR|BEL. The rest of
+The first line must contain only the task solved: `PR|MPE|MAR|BEL`. The rest of
 the file will contain the solution for the task. Solvers can write more then
-one solution by writing -BEGIN- at the head of the new solution. We will only
+one solution by writing `-BEGIN-` at the head of the new solution. We will only
 consider the last solution in the file. In the example below the task we choose
-is PR. We have two solutions. The format of the <SOLUTION> part will be
+is `PR`. We have two solutions. The format of the `<SOLUTION>` part will be
 described below.
 
     PR
@@ -171,7 +171,7 @@ the empty evidence.
 
 Solvers that can bound their estimation are encouraged to specify if their
 solution is lower or upper bound. Doing so by adding at the end of the solution
-the letters L(for lower bound) or U (for upper bound).
+the letters `L` (for lower bound) or `U` (for upper bound).
 
 The line format is as follows (according to the task):
 
@@ -183,7 +183,7 @@ The line format is as follows (according to the task):
 
 - **Most probable explanation, MPE**: A space separated line that includes:
   1. the number n of model variables, and
-  2. the MPE instantiation, a list of value indices for all n variables.
+  2. the `MPE` instantiation, a list of value indices for all n variables.
   For example, an input model with 3 binary variables may have a solution line:
 
       3 0 1 0
@@ -206,17 +206,17 @@ The line format is as follows (according to the task):
 
   2. A list of belief approximations for all n cliques. Each marginal
      approximation is specified by a list, starting with the number of entries
-     of the factor, followed by the approximation Pr(x|e) for each value of x
-     (where is a vector of the clique variables).
+     of the factor, followed by the approximation ``Pr(x|e)`` for each value of
+     ``x`` (where is a vector of the clique variables).
 
   For example, if an input model has 2 cliques the first with 2 binary variable
-  and the second with 3.The solution line may look like:
+  and the second with 3. The solution line may look like:
 
       2 4 0.25 0.25 0.4 0.1 8 0.1 0.05 0.05 0.2 0.1 0.01 0.04 0.45
 
   The order of the entries is as in the model description.
 
-Here is a complete example for a solution for the MPE task. The evidence file
+Here is a complete example for a solution for the `MPE` task. The evidence file
 contains one evidence samples.
 
     MPE
@@ -228,4 +228,5 @@ contains one evidence samples.
 
 If a solver does not produce a solution by the given time, it would be
 considered as having failed on the instance. This will be treated as equivalent
-to a naive solution (e.g. bit-wise singleton clique maximum for a MAP problem).
+to a naive solution (e.g. bit-wise singleton clique maximum for a `MAP`
+problem).
