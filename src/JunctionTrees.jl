@@ -4,8 +4,7 @@ Main module for `JunctionTrees.jl` -- a Julia implementation of the junction tre
 
 One main function is exported from this module for public use:
 
-- [`compile_algo`](@ref). Computes the posterior marginals using the
-junction tree algorithm given evidence.
+- [`compile_algo`](@ref). Computes the posterior marginals using the junction tree algorithm given evidence.
 
 # Exports
 

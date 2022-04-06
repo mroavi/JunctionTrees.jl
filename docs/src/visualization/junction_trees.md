@@ -136,7 +136,7 @@ fig
 #### Example 5
 
 Plots a junction tree with cluster IDs and cluster variables as node labels.
-The root cluster is denoted with a square.
+The root cluster is denoted with a fisheye lens-like circle.
 
 ```@example
 using JunctionTrees, CairoMakie, GraphMakie, Graphs, Printf, MetaGraphs
@@ -181,8 +181,8 @@ fig
 #### Example 6
 
 Plots a junction tree with cluster IDs and cluster variables as node labels.
-The root cluster is denoted with a square. Clusters with one or more observed
-variables are colored in red.
+The root cluster is denoted with a fisheye lens-like circle. Clusters with one
+or more observed variables are colored in red.
 
 ```@example
 using JunctionTrees, CairoMakie, GraphMakie, Graphs, Printf, MetaGraphs, ColorSchemes
@@ -235,8 +235,8 @@ fig
 #### Example 7
 
 Plots a junction tree with cluster IDs and cluster variables as node labels and
-sepsets as edge labels. The root cluster is denoted with a square. Clusters
-with one or more observed variables are colored in red.
+sepsets as edge labels. The root cluster is denoted with a fisheye lens-like
+circle. Clusters with one or more observed variables are colored in red.
 
 ```@example
 using JunctionTrees, CairoMakie, GraphMakie, Graphs, Printf, MetaGraphs, ColorSchemes

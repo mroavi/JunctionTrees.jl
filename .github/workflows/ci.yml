@@ -69,10 +69,11 @@ jobs:
           version: '1.7'
 
       # TexLive installation
+      # Taken from: https://github.com/JuliaTeX/TikzPictures.jl/blob/master/.github/workflows/CI.yml
       - name: Install TexLive
         run: sudo apt-get install pdf2svg texlive-latex-base texlive-binaries texlive-pictures texlive-latex-extra texlive-luatex
 
-      # Instantiate project and run unit tests
+      # Instantiate project and make the docs
       - run: |
           julia --project=docs -e '
             using Pkg
