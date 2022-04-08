@@ -8,8 +8,8 @@ variables. This is known as the inference problem.
 
 ## The inference problem
 
-Given a set of **random variables** ``\mathcal{V}`` and their **joint
-distribution** ``P(\mathcal{V})``, compute one or more conditional
+Given a set of **random variables** ``\bm{V}`` and their **joint
+distribution** ``P(\bm{V})``, compute one or more conditional
 distributions over a set of **query variables** ``\bm{Q}`` given observations
 ``\bm{e}`` for the set of **observed variables** ``\bm{E}``.
 
@@ -26,9 +26,9 @@ tp = TikzPicture(
     % the shapes.
 
     % row 1
-    \node[myroundbox] (rv) {Random Variables\\$\mathcal{V}$};
+    \node[myroundbox] (rv) {Random Variables\\$\bm{V}$};
     \node[right=of rv](aux1) {};
-    \node[right=of aux1,myroundbox] (jd) {Joint Distribution\\$P(\mathcal{V})$};
+    \node[right=of aux1,myroundbox] (jd) {Joint Distribution\\$P(\bm{V})$};
     \node[right=of jd](aux2) {};
     \node[right=of aux2,myroundbox] (e) {Evidence\\$\bm{E=e}$};
     \node[right=of e](aux3) {};
@@ -75,8 +75,7 @@ tp = TikzPicture(
     \node[mybox,below=of jts] (ijt) {Inconsistent Junction Tree};
     \node[mybox,below=of ijt,yshift=0.4cm] (cjt) {Consistent Junction Tree};
     \node[mybox,below=of ijt,yshift=0.4cm] (cjt) {Consistent Junction Tree};
-
-    \node[text=black,below=of cjt] (mar) {$P(V \mid \bm{E=e})$};
+    \node[text=black,below=of cjt] (mar) {$P(\bm{Q} \mid \bm{E=e})$};
 
     \draw[myarrow] (pgm) -- (jts);
     \draw[myarrow] (jts) -- (ijt);
@@ -99,16 +98,16 @@ A probabilistic graphical model (PGM) is the input to the JTA. PGMs illustrate
 the mathematical modeling of reasoning in the presence of uncertainty. Bayesian
 networks and Markov random fields are popular types of PGMs. Consider the
 Bayesian network shown in the figure below. It consists of a graph ``G =
-(\mathcal{V},\mathcal{E})`` and a probability distribution ``P(\mathcal{V})``
-where ``G`` is a directed acyclic graph, ``\mathcal{V}`` is the set of
+(\bm{V},\mathcal{E})`` and a probability distribution ``P(\bm{V})``
+where ``G`` is a directed acyclic graph, ``\bm{V}`` is the set of
 variables and ``\mathcal{E}`` is the set of edges connecting the variables. We
 assume all variables to be discrete. Each variable ``V`` is quantified with a
 *conditional probability distribution* ``P(V \mid pa(V))`` where ``pa(V)`` are
 the parents of ``V``. These conditional probability distributions together with
 the graph ``G`` induce a *joint probability distribution* over
-``P(\mathcal{V})``, given by
+``P(\bm{V})``, given by
 ```math
-P(\mathcal{V}) = \prod_{V\in\mathcal{V}} P(V \mid pa(V)).
+P(\bm{V}) = \prod_{V\in\bm{V}} P(V \mid pa(V)).
 ```
 
 | **Random variable**  | **Meaning**                   |
