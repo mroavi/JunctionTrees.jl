@@ -1,10 +1,10 @@
 # Background
 
-The junction tree algorithm is a general algorithmic framework to perform
-discrete inference in general graphs, such as Bayesian Networks or Markov
-random fields. The general problem is to calculate the conditional probability
-of a variable or a set of variables, given observed values of another set of
-variables. This is known as the inference problem.
+The junction tree algorithm is an efficient method to perform Bayesian
+inference in probabilistic graphical models, such as Bayesian Networks or
+Markov random fields. The general problem is to calculate the conditional
+probability of a variable or a set of variables, given observed values of
+another set of variables. This is known as the inference problem.
 
 ## The inference problem
 
