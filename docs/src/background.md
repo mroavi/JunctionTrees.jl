@@ -532,7 +532,7 @@ tp = TikzPicture(
     \node[myrectbox,below=of sup] (pe) {Optimization};
     % row 5
     \node[myroundbox,below=of pe,yshift=-8mm] (spp) {Optimized Program};
-    \node[myroundbox,left=of spp] (ev) {Evidence};
+    \node[myroundbox,left=of spp] (ev) {Evidence Values};
     % row 6
     \node[myroundbox,below=of spp] (mar) {$P(\text{Query Vars} \mid {\bf E=e})$};
     % edges
