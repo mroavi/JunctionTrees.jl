@@ -32,7 +32,7 @@ $(TYPEDSIGNATURES)
 Parse the problem instance found in `uai_filepath` defined in the UAI model
 format.
 
-The UAI file format is defined in:
+The UAI file formats are defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
 function read_uai_file(uai_filepath::String)
@@ -57,7 +57,7 @@ function read_uai_file(uai_filepath::String)
     x -> map(y -> map( z -> z +1, y), x) |> # convert to 1-based index
     x -> map(reverse, x)                  # order vars in ascending order (least significant first)
 
-  tables1 =
+  parsed_margs =
     lines[(5+ntables):end] |>             # extract the probability tables definition lines
     x -> map(y -> y * " ", x) |>          # append a "space" to the end of each element
     x -> reduce(*, x) |>                  # concatenate all string elements
@@ -66,9 +66,9 @@ function read_uai_file(uai_filepath::String)
   tables2 = Array{Float64,1}[]
 
   let i = 1
-    while i <= length(tables1)
-      nelements = tables1[i] |> x -> parse(Int, x)
-      tables1[i+1:i+nelements] |> x -> parse.(Float64, x) |> x -> push!(tables2, x)
+    while i <= length(parsed_margs)
+      nelements = parsed_margs[i] |> x -> parse(Int, x)
+      parsed_margs[i+1:i+nelements] |> x -> parse.(Float64, x) |> x -> push!(tables2, x)
       i += nelements + 1
     end
   end
@@ -93,6 +93,9 @@ $(TYPEDSIGNATURES)
 
 Return the observed variables and values in `uai_evid_filepath`. If the passed
 file path is an empty string, return empty vectors.
+
+The UAI file formats are defined in:
+https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
 function read_uai_evid_file(uai_evid_filepath::String)
 
@@ -124,6 +127,41 @@ function read_uai_evid_file(uai_evid_filepath::String)
   # print("  "); @show obsvals
 
   return obsvars, obsvals
+
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the marginals of all variables. The order of the variables is the same
+as in the model
+
+The UAI file formats are defined in:
+https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
+"""
+function read_uai_mar_file(uai_mar_filepath::String)
+
+  # Read the uai mar file into an array of lines
+  rawlines = open(uai_mar_filepath) do file
+    readlines(file)
+  end
+
+  parsed_margs = 
+    split(rawlines[2]) |>
+    x -> x[2:end] |>
+    x -> parse.(Float64, x)
+
+  marginals = Array{Float64,1}[]
+
+  let i = 1
+    while i <= length(parsed_margs)
+      nvars = parsed_margs[i] |> x -> convert(Int, x)
+      parsed_margs[i+1:i+nvars] |> x -> push!(marginals, x)
+      i += nvars + 1
+    end
+  end
+
+  return marginals
 
 end
 
