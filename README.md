@@ -20,4 +20,4 @@ algorithm](https://en.wikipedia.org/wiki/Junction_tree_algorithm).
 ] add JunctionTrees
 ```
 
-Please read the [documentation](https://mroavi.github.io/JunctionTrees.jl/dev/). 
+Please read the [documentation](https://mroavi.github.io/JunctionTrees.jl/). 
