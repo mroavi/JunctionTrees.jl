@@ -16,7 +16,9 @@ using JunctionTrees
     reference_marginals = JunctionTrees.read_uai_mar_file(uai_mar_filepath)
     obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
 
+    # ------------------------------------------------------------------------------
     # Posterior marginals given evidence
+    # ------------------------------------------------------------------------------
 
     algo = compile_algo(
              uai_filepath,
@@ -27,7 +29,9 @@ using JunctionTrees
 
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
+    # ------------------------------------------------------------------------------
     # Posterior marginals given evidence and existing junction tree
+    # ------------------------------------------------------------------------------
 
     algo = compile_algo(
              uai_filepath,
@@ -38,6 +42,23 @@ using JunctionTrees
     marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
 
     @test isapprox(marginals, reference_marginals, atol=0.03)
+
+    # ------------------------------------------------------------------------------
+    # Posterior marginals given evidence and with partial evaluation
+    # ------------------------------------------------------------------------------
+
+    algo = compile_algo(
+             uai_filepath,
+             uai_evid_filepath = uai_evid_filepath,
+             apply_partial_evaluation = true,
+           )
+    eval(algo)
+    marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+
+    # Filter the observed variables from the reference solution
+    reference_marginals_filtered = reference_marginals[setdiff(begin:end, obsvars)]
+
+    @test isapprox(marginals, reference_marginals_filtered, atol=0.03)
 
   end
 
