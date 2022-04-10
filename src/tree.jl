@@ -69,7 +69,7 @@ Construct a tree decomposition abstract tree based on the graph `g` using
 
 # Example
 ```
-using LightGraphs
+using Graphs
 
 g = double_binary_tree(3)
 root = Node(1)
@@ -77,7 +77,7 @@ convertToAbstractTree!(g, root)
 print_tree(root)
 ```
 """
-function convertToAbstractTree!(g::MetaGraph, root::Node, parent::Node=root)
+function convertToAbstractTree!(g, root::Node, parent::Node=root)
 
   # Is the parent node the root?
   if root === parent
