@@ -1,0 +1,46 @@
+\usepackage{tikz}
+\usepackage{xcolor-material} % https://ctan.org/pkg/xcolor-material
+\usetikzlibrary{calc}
+
+\newcommand{\convexpath}[2]{
+  [   
+  create hullnodes/.code={
+    \global\edef\namelist{#1}
+    \foreach [count=\counter] \nodename in \namelist {
+      \global\edef\numberofnodes{\counter}
+      \node at (\nodename) [draw=none,name=hullnode\counter] {};
+    }
+    \node at (hullnode\numberofnodes) [name=hullnode0,draw=none] {};
+    \pgfmathtruncatemacro\lastnumber{\numberofnodes+1}
+    \node at (hullnode1) [name=hullnode\lastnumber,draw=none] {};
+  },
+  create hullnodes
+  ]
+  ($(hullnode1)!#2!-90:(hullnode0)$)
+  \foreach [
+  evaluate=\currentnode as \previousnode using \currentnode-1,
+  evaluate=\currentnode as \nextnode using \currentnode+1
+  ] \currentnode in {1,...,\numberofnodes} {
+    -- ($(hullnode\currentnode)!#2!-90:(hullnode\previousnode)$)
+    let \p1 = ($(hullnode\currentnode)!#2!-90:(hullnode\previousnode) - (hullnode\currentnode)$),
+    \n1 = {atan2(\y1,\x1)},
+    \p2 = ($(hullnode\currentnode)!#2!90:(hullnode\nextnode) - (hullnode\currentnode)$),
+    \n2 = {atan2(\y2,\x2)},
+    \n{delta} = {-Mod(\n1-\n2,360)}
+    in 
+    {arc [start angle=\n1, delta angle=\n{delta}, radius=#2]}
+  }
+  -- cycle
+}
+
+\tikzset {
+  mybag/.style={circle, thick, draw=black},
+  myclique/.style= {thick},
+}
+
+\colorlet{AT}{MaterialRed}
+\colorlet{TLE}{MaterialPurple}
+\colorlet{EX}{MaterialIndigo}
+\colorlet{LBE}{MaterialCyan}
+\colorlet{LBS}{MaterialGreen}
+\colorlet{DEB}{MaterialOrange}
