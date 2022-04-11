@@ -5,8 +5,6 @@ The junction trees used in JunctionTrees.jl can be conveniently visualized with
 presents a series of examples that illustrate different possibilities of
 plotting this type of graphs.
 
-This section presents different examples of plotting junction trees.
-
 #### Example 1
 
 Plots a junction tree with no node or edge labels.
