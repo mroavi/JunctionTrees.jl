@@ -1,8 +1,12 @@
 """
 $(TYPEDEF)
-$(TYPEDFIELDS)
 
-A composite type that implements the factor datatype.
+# Fields
+- `vars`
+- `vals`
+
+Encodes a discrete function over the set of variables `vars` that maps each
+instatiation of `vars` into a nonnegative number in `vals`.
 """
 struct Factor{T,N}
   vars::NTuple{N,Int64}
@@ -18,10 +22,14 @@ $(TYPEDSIGNATURES)
 Compute a factor product of tables `A` and `B`.
 
 # Examples
-```julia
-A = Factor{Float64,2}((2, 1), [0.5 0.1 0.03; 0.8 0.0 0.9])
-B = Factor{Float64,2}((3, 2), [0.5 0.1; 0.7 0.2])
-C = product(A, B)
+```jldoctest
+A = Factor{Float64,2}((2, 3), [0.5 0.7; 0.1 0.2])
+B = Factor{Float64,2}((1, 2), [0.5 0.8; 0.1 0.0; 0.3 0.9])
+product(A, B)
+
+# output
+
+Factor{Float64, 3}((1, 2, 3), [0.25 0.08000000000000002; 0.05 0.0; 0.15 0.09000000000000001;;; 0.35 0.16000000000000003; 0.06999999999999999 0.0; 0.21 0.18000000000000002])
 ```
 """
 function product(A::Factor{T}, B::Factor{T}) where T
@@ -53,7 +61,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Compute a factor product of an arbitrary number of factor arguments.
+Compute a factor product of an arbitrary number of factors.
 """
 function product(F::Vararg{Factor{T}}) where T
   reduce(product, F; init = Factor{T,0}((), Array{T,0}(undef)))
@@ -65,16 +73,13 @@ $(TYPEDSIGNATURES)
 Sum out the variables in `V` from factor A.
 
 # Examples
-```julia
-A = Factor{Float64,3}((3, 2, 1), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
-                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-V = [1]
-B = marg(A, V)
+```jldoctest
+A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
+marg(A, (2,))
 
-A = Factor{Float64,3}((2, 7, 1), cat([1 2; 3 4;  5  6],
-                                     [7 8; 9 10; 11 12], dims=3))
-V = [7]
-B = marg(A, V)
+# output
+
+Factor{Float64, 1}((1,), [1.0, 1.0])
 ```
 """
 function marg(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
@@ -90,6 +95,17 @@ end
 $(TYPEDSIGNATURES)
 
 Sum out an aribitrary number of variables from factor A.
+
+# Examples
+```jldoctest
+A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
+                                     [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
+marg(A, 1, 2)
+
+# output
+
+Factor{Float64, 1}((3,), [0.6199999999999999, 0.97])
+```
 """
 marg(A::Factor, V::Int...) = marg(A, V)
 
@@ -129,12 +145,16 @@ $(TYPEDSIGNATURES)
 Reduce/invalidate all entries that are not consitent with the evidence.
 
 # Examples
-```julia
+```jldoctest
 A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                      [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-vars = (1,3)
-vals = (1,1)
-B = redu(A, vars, vals)
+obs_vars = (3,)
+obs_vals = (1,)
+redu(A, obs_vars, obs_vals)
+
+# output
+
+Factor{Float64, 3}((1, 2, 3), [0.25 0.08; 0.05 0.0; 0.15 0.09;;; 0.0 0.0; 0.0 0.0; 0.0 0.0])
 ```
 """
 function redu(A::Factor{T}, vars::Tuple, vals::Tuple) where T
@@ -153,9 +173,13 @@ Normalize the values in Factor A such that all probabilities lie between 0
 and 1.
 
 # Examples
-```julia
-A = Factor([2, 1], [1.0 2.0 3.0; 4.0 5.0 6.0])
-B = norm(A)
+```jldoctest
+A = Factor{Float64,2}((1, 2), [0.2 0.4; 0.6 0.8])
+norm(A)
+
+# output
+
+Factor{Float64, 2}((1, 2), [0.1 0.2; 0.3 0.4])
 ```
 """
 function norm(A::Factor)

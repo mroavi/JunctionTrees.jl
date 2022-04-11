@@ -1,5 +1,7 @@
 using Documenter, JunctionTrees
 
+DocMeta.setdocmeta!(JunctionTrees, :DocTestSetup, :(using JunctionTrees); recursive=true)
+
 makedocs(
   modules = [JunctionTrees],
   clean = true,

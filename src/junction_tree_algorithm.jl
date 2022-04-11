@@ -18,9 +18,53 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return an expression containing the computations to compute the marginals of
-all the variables in the model using the junction tree algorithm.
+Return an expression of the junction tree algorithm that extracts the marginals
+of all the variables in the model.
 
+# Arguments
+- `uai_filepath::String`: path to the model file defined in the [UAI model file format](@ref).
+- `uai_evid_filepath::String = ""`: path to the evidence file defined in the [UAI evidence file format](@ref).
+- `td_filepath::String = ""`: path to a pre-constructed junction tree defined in the [PACE graph format](@ref).
+- `apply_partial_evaluation::Bool = false`: optimize the algorithm using partial evaluation.
+- `last_stage::LastStage = Marginals`: return an expression up to the given stage. The options are `ForwardPass`, `BackwardPass`, `JointMarginals`, `UnnormalizedMarginals` and `Marginals`.
+- `smart_root_selection::Bool = select as root the cluster with the largest state space.`
+
+# Examples
+```jldoctest
+algo = compile_algo("../examples/problems/paskin/paskin.uai")
+eval(algo)
+obsvars, obsvals = Int64[], Int64[]
+marginals = run_algo(obsvars, obsvals)
+
+# output
+
+6-element Vector{Factor{Float64, 1}}:
+ Factor{Float64, 1}((1,), [0.33480077287635474, 0.33039845424729053, 0.33480077287635474])
+ Factor{Float64, 1}((2,), [0.378700415763991, 0.621299584236009])
+ Factor{Float64, 1}((3,), [0.3632859624875086, 0.6367140375124913])
+ Factor{Float64, 1}((4,), [0.6200692707149191, 0.37993072928508087])
+ Factor{Float64, 1}((5,), [0.649200314859223, 0.350799685140777])
+ Factor{Float64, 1}((6,), [0.5968155611613972, 0.4031844388386027])
+```
+
+```jldoctest
+algo = compile_algo(
+         "../examples/problems/paskin/paskin.uai",
+         uai_evid_filepath = "../examples/problems/paskin/paskin.uai.evid")
+eval(algo)
+obsvars, obsvals = JunctionTrees.read_uai_evid_file("../examples/problems/paskin/paskin.uai.evid")
+marginals = run_algo(obsvars, obsvals)
+
+# output
+
+6-element Vector{Factor{Float64, 1}}:
+ Factor{Float64, 1}((1,), [1.0, 0.0, 0.0])
+ Factor{Float64, 1}((2,), [0.0959432982733719, 0.9040567017266281])
+ Factor{Float64, 1}((3,), [0.07863089300137578, 0.9213691069986242])
+ Factor{Float64, 1}((4,), [0.8440129077674895, 0.15598709223251056])
+ Factor{Float64, 1}((5,), [0.9015456486772953, 0.09845435132270475])
+ Factor{Float64, 1}((6,), [0.6118571666785584, 0.3881428333214415])
+```
 """
 function compile_algo(uai_filepath::String;
                       uai_evid_filepath::String = "",
