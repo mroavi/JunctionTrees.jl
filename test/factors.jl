@@ -107,17 +107,17 @@ using JunctionTrees
   @testset "factor normalization" begin
 
     A = Factor{Float64,1}((1,), [0.22; 0.89])
-    C = norm(A)
-    @test sum(C.vals) ≈ 1.0
+    B = norm(A)
+    @test sum(B.vals) ≈ 1.0
 
-    B = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
-    C = norm(A)
-    @test sum(C.vals) ≈ 1.0
+    A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
+    B = norm(A)
+    @test sum(B.vals) ≈ 1.0
 
     A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-    C = norm(A)
-    @test sum(C.vals) ≈ 1.0
+    B = norm(A)
+    @test sum(B.vals) ≈ 1.0
 
   end
 
