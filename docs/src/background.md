@@ -97,15 +97,18 @@ save(SVG(joinpath(@__DIR__, "pptc-flow-diagram")), tp)
 A probabilistic graphical model (PGM) is the input to the JTA. PGMs illustrate
 the mathematical modeling of reasoning in the presence of uncertainty. Bayesian
 networks and Markov random fields are popular types of PGMs. Consider the
-Bayesian network shown in the figure below. It consists of a graph ``G =
-(\bm{V},\mathcal{E})`` and a probability distribution ``P(\bm{V})``
-where ``G`` is a directed acyclic graph, ``\bm{V}`` is the set of
-variables and ``\mathcal{E}`` is the set of edges connecting the variables. We
-assume all variables to be discrete. Each variable ``V`` is quantified with a
-*conditional probability distribution* ``P(V \mid pa(V))`` where ``pa(V)`` are
-the parents of ``V``. These conditional probability distributions together with
-the graph ``G`` induce a *joint probability distribution* over
-``P(\bm{V})``, given by
+Bayesian network shown in the figure below known as the *ASIA network*
+[^lauritzen1988local]. It is a simplified example from the context of medical
+diagnosis that describes the probabilistic relationships between different
+random variables corresponding to possible diseases, symptoms, risk factors and
+test results. It consists of a graph ``G = (\bm{V},\mathcal{E})`` and a
+probability distribution ``P(\bm{V})`` where ``G`` is a directed acyclic graph,
+``\bm{V}`` is the set of variables and ``\mathcal{E}`` is the set of edges
+connecting the variables. We assume all variables to be discrete. Each variable
+``V`` is quantified with a *conditional probability distribution* ``P(V \mid
+pa(V))`` where ``pa(V)`` are the parents of ``V``. These conditional
+probability distributions together with the graph ``G`` induce a *joint
+probability distribution* over ``P(\bm{V})``, given by
 ```math
 P(\bm{V}) = \prod_{V\in\bm{V}} P(V \mid pa(V)).
 ```
@@ -173,15 +176,17 @@ save(SVG(joinpath(@__DIR__, "asia-bayesian-network")), tp)
 ### Graphical transformation
 
 JTA performs probabilistic inference on a secondary structure known as a
-*junction tree*. A junction tree is constructed from a PGM by means of two
-graphical transformations: *moralization* and *triangulation*.
+*junction tree*. A junction tree is constructed from a PGM by means of three
+graphical transformations: *moralization*, *triangulation*, and *connection of
+clusters*.
 
 #### Moralization
 
 Moralization converts a directed acyclic graph into a undirected graph by
 dropping the directions of the edges and connecting the parents of each node.
 The figure below shows the corresponding moral graph of the Bayesian network in
-the figure above.
+the figure above. The arrows point to the edges introduced after the
+transformation.
 
 ```@eval
 using TikzPictures
@@ -240,11 +245,12 @@ save(SVG(joinpath(@__DIR__, "asia-moral-graph")), tp)
 
 Triangulation of an undirected graph is carried out by connecting two
 non-adjacent nodes in every cycle of length greater than three. The figure
-below shows a triangulated graph of the moral graph in the figure above. Note
-that, in general, there is more than one way of triangulating a given
-undirected graph. An optimal triangulation is one that minimizes the sum of the
-state space sizes of the *maximal cliques*[^1] (denoted with colored boundaries
-in the figure below. This problem is NP-complete [^arnborg1987complexity].
+below shows a triangulated graph of the moral graph in the figure above. The
+arrow points to the edge introduced after the transformation. Note that, in
+general, there is more than one way of triangulating a given undirected graph.
+An optimal triangulation is one that minimizes the sum of the state space sizes
+of the *maximal cliques*[^1] (denoted with colored boundaries in the figure
+below). This problem is NP-complete [^arnborg1987complexity].
 
 ```@eval
 using TikzPictures
@@ -318,6 +324,12 @@ labeled with the intersection of the adjacent clusters. Such labels are called
 separator sets or *sepsets*. [^jensen1994optimal] present an optimal method to
 construct a junction tree from a triangulated graph. The figure below shows the
 result of applying this method to the triangulated graph in the figure above.
+Clusters are depicted as large circles and sepsets as rectangles. The color of
+clusters correspond to the maximal cliques of the triangulated graph (figure
+above). The encircled variables indicate which conditional probability
+distributions in the equation presented in section [The junction tree
+algorithm](@ref) were multiplied into which cluster potentials of the junction
+tree.
 
 ```@eval
 using TikzPictures
@@ -502,10 +514,8 @@ phase consists of the creation and subsequent optimization of the algorithm.
 The run-time phase consists of processing online data with the compiled
 algorithm to provide answers about variables of interest. This distinction
 between a compilation and a runtime phase opens a wide range of optimization
-possibilities in an offline stage that aims to generate the minimal piece of
-software that is required online. Moreover, it allows moving the computational
-burden from the runtime to the compilation phase. The figure below illustrates
-the compiler-based framework design used in JunctionTrees.jl.
+possibilities in the offline stage. The figure below illustrates the
+compiler-based framework design used in JunctionTrees.jl.
 
 ```@eval
 using TikzPictures
@@ -555,13 +565,16 @@ save(SVG(joinpath(@__DIR__, "compiler-based-framework")), tp)
 [^1]: A clique in an undirected graph is a subgraph in which every pair of nodes is connected by an edge. A maximal clique is a clique that is not contained in a larger clique.
 
 [^huang1996inference]:
-    Cecil Huang and Adnan Darwiche. Inference in belief networks: A procedural guide. International Journal of Approximate Reasoning, 15 (3):225–263, 1996. ISSN 0888-613X. doi: <https://doi.org/10.1016/S0888-613X(96)00069-2>. URL <https://www.sciencedirect.com/science/article/pii/S0888613X96000692>.
+    Cecil Huang and Adnan Darwiche. Inference in belief networks: A procedural guide. *International Journal of Approximate Reasoning*, 15 (3):225–263, 1996. ISSN 0888-613X. doi: <https://doi.org/10.1016/S0888-613X(96)00069-2>. URL <https://www.sciencedirect.com/science/article/pii/S0888613X96000692>.
+
+[^lauritzen1988local]:
+    Steffen L Lauritzen and David J Spiegelhalter. Local computations with probabilities on graphical structures and their application to expert systems. *Journal of the Royal Statistical Society: Series B (Methodological)*, 50(2):157–194, 1988.
 
 [^arnborg1987complexity]:
-    Stefan Arnborg, Derek G Corneil, and Andrzej Proskurowski. Complexity of finding embeddings in ak-tree. SIAM Journal on Algebraic Discrete Methods, 8(2):277–284, 1987.
+    Stefan Arnborg, Derek G Corneil, and Andrzej Proskurowski. Complexity of finding embeddings in ak-tree. *SIAM Journal on Algebraic Discrete Methods*, 8(2):277–284, 1987.
 
 [^jensen1994optimal]:
-    Finn V. Jensen and Frank Jensen. Optimal junction trees. In Proceedings of the Tenth International Conference on Un- certainty in Artificial Intelligence, UAI’94, page 360–366, San Francisco, CA, USA, 1994. Morgan Kaufmann Publishers Inc. ISBN 1558603328.
+    Finn V. Jensen and Frank Jensen. Optimal junction trees. In *Proceedings of the Tenth International Conference on Uncertainty in Artificial Intelligence*, UAI’94, page 360–366, San Francisco, CA, USA, 1994. Morgan Kaufmann Publishers Inc. ISBN 1558603328.
 
 [^koller2009probabilistic]:
     Daphne Koller and Nir Friedman. Probabilistic graphical models: principles and techniques, pg 111. MIT press, 2009.
