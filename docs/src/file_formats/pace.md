@@ -1,4 +1,4 @@
-# PACE file format
+# PACE files format
 
 This document defines the following file formats:
 

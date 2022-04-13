@@ -165,16 +165,17 @@ would avoid having to bookkeep the node ids in the orginal graph after
 it is modified with `rev_vertex!`.
 
 Bookkepping example for the `paskin-example` problem:
------------------------------------------------------------
-| var to remove | vertices(g) | int2ext     | ext2int     |
------------------------------------------------------------
-| 6             | 1 2 3 4 5 6 | 1 2 3 4 5 6 | 1 2 3 4 5 6 |
-| 4             | 1 2 3 4 5   | 1 2 3 4 5   | 1 2 3 4 5 0 |
-| 5             | 1 2 3 4     | 1 2 3 5     | 1 2 3 0 4 0 |
-| 2             | 1 2 3       | 1 2 3       | 1 2 3 0 0 0 |
-| 1             | 1 2         | 1 3         | 1 0 2 0 0 0 |
-| 3             | 1           | 3           | 0 0 1 0 0 0 |
------------------------------------------------------------
+
+    -----------------------------------------------------------
+    | var to remove | vertices(g) | int2ext     | ext2int     |
+    -----------------------------------------------------------
+    | 6             | 1 2 3 4 5 6 | 1 2 3 4 5 6 | 1 2 3 4 5 6 |
+    | 4             | 1 2 3 4 5   | 1 2 3 4 5   | 1 2 3 4 5 0 |
+    | 5             | 1 2 3 4     | 1 2 3 5     | 1 2 3 0 4 0 |
+    | 2             | 1 2 3       | 1 2 3       | 1 2 3 0 0 0 |
+    | 1             | 1 2         | 1 3         | 1 0 2 0 0 0 |
+    | 3             | 1           | 3           | 0 0 1 0 0 0 |
+    -----------------------------------------------------------
 
 Variables preceded with `_` use the internal variable indexation. Those without
 use the external/original variable indexation.

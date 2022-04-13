@@ -27,7 +27,7 @@ of all the variables in the model.
 - `td_filepath::String = ""`: path to a pre-constructed junction tree defined in the [PACE graph format](@ref).
 - `apply_partial_evaluation::Bool = false`: optimize the algorithm using partial evaluation.
 - `last_stage::LastStage = Marginals`: return an expression up to the given stage. The options are `ForwardPass`, `BackwardPass`, `JointMarginals`, `UnnormalizedMarginals` and `Marginals`.
-- `smart_root_selection::Bool = select as root the cluster with the largest state space.`
+- `smart_root_selection::Bool` = select as root the cluster with the largest state space.
 
 # Examples
 ```jldoctest

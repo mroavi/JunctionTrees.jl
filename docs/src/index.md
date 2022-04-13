@@ -11,8 +11,8 @@
 ## Package features
 
 - Posterior marginal computation of discrete variables given evidence.
-- Metaprogramming-based design that separates the off-line and on-line
-  computations for better efficiency of real-time inference.
+- Metaprogramming-based design that separates the algorithm into a compilation
+  and a runtime phase.
 - Visualization of junction trees, Bayesian networks and Markov random fields.
 
 ## Outline
