@@ -1,6 +1,6 @@
 """
 Enumerated type used to select up to which stage an expression of the junction
-tree algorithm should be returned.
+tree algorithm should be returned after calling [`compile_algo`](@ref).
 """
 @enum LastStage begin
   ForwardPass
@@ -9,11 +9,11 @@ tree algorithm should be returned.
   UnnormalizedMarginals
   Marginals
 end
-@doc "Return an expression up to and including the forward pass." ForwardPass
-@doc "Return an expression up to and including the backward pass." BackwardPass
-@doc "Return an expression that computes the cluster joint marginals." JointMarginals
-@doc "Return an expression that computes the joint marginals." UnnormalizedMarginals
-@doc "Return an expression that computes the posterior marginals." Marginals
+@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression up to and including the forward pass is returned." ForwardPass
+@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression up to and including the backward pass is returned." BackwardPass
+@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the cluster joint marginals is returned." JointMarginals
+@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the joint marginals is returned." UnnormalizedMarginals
+@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the posterior marginals is returned (default)." Marginals
 
 """
 $(TYPEDSIGNATURES)
