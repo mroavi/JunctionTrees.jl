@@ -111,9 +111,9 @@ function partially_evaluate(g, before_pass_msgs)
       # No, then evaluate the product contained in the message?
       elseif pe_msg_prop == EvalProductOnly
         # Is the first argument of the msg a product operation?
-        if @capture(fargs[1], product(pargs__))
+        if @capture(fargs[1], prod(pargs__))
           # Yes, then evaluate it, wrap it in the marg operation and add the msg to the new expr
-          prod_evaled = :(product($(pargs...))) |> eval # eval the product 
+          prod_evaled = :(prod($(pargs...))) |> eval # eval the product 
           after_pass_msg = :($var = $f($prod_evaled, $(fargs[2:end]...))) # wrap the evaled prod in the msg
         else
           # No, then do not modify the current message

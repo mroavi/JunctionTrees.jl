@@ -37,7 +37,7 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
         edge_mar_var_name = Symbol("edge_mar_", min(edge.src,edge.dst),"_", max(edge.src,edge.dst))
         up_msg = get_prop(g, edge, :up_msg)
         down_msg = get_prop(g, edge, :down_msg)
-        edge_marginal = :($edge_mar_var_name = product($(up_msg.args[1]), $(down_msg.args[1])))
+        edge_marginal = :($edge_mar_var_name = prod($(up_msg.args[1]), $(down_msg.args[1])))
 
         # 1.1 Has this edge marginal expr already been added to the algo?
         if !has_prop(g, edge, :marg)
@@ -76,7 +76,7 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
 
         bag_marginal =
           vcat(in_msgs_var_names, pot_var_name) |>
-          x -> :($bag_mar_var_name = product($(x...)))
+          x -> :($bag_mar_var_name = prod($(x...)))
 
         # 2.1 Has this bag marginal expr already been added to the algo?
         if !has_prop(g, bag, :marg)

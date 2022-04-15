@@ -29,7 +29,7 @@ function compile_forward_pass!(g, root)
         children_ids -> map(child_id -> get_prop(g, child_id, bag.id, :up_msg), children_ids) |>
         in_msgs -> map(in_msg -> in_msg.args[1], in_msgs) |> # get the msg variable name from Expr
         in_msgs_var_names -> vcat(in_msgs_var_names, pot_var_name) |> # concat in msgs and pot
-        in_msgs_and_potential -> :(product($(in_msgs_and_potential...))) #splatting interpol
+        in_msgs_and_potential -> :(prod($(in_msgs_and_potential...))) #splatting interpol
     end
 
     # Get the variables that need to be marginalized
@@ -98,14 +98,14 @@ function compile_backward_pass!(g, root)
         # current bag has parent, current child has no sibling(s)
         parent_msg = get_prop(g, parent_node.id, bag.id, :down_msg) |> # get down msg from prop
           down_msg -> down_msg.args[1] # get the msg variable name
-        joint = :(product($parent_msg, $pot_var_name))
+        joint = :(prod($parent_msg, $pot_var_name))
       elseif isnothing(parent_node) && !isempty(siblings)
         # current bag has no parent, current child has sibling(s)
         joint =
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names from Exprs
           sibling_msgs_var_names -> vcat(sibling_msgs_var_names, pot_var_name) |> # concat sibling msgs and potential
-          sibling_msgs_and_potential -> :(product($(sibling_msgs_and_potential...)))
+          sibling_msgs_and_potential -> :(prod($(sibling_msgs_and_potential...)))
       else
         # current bag has parent, current child has sibling(s)
         parent_msg = get_prop(g, parent_node.id, bag.id, :down_msg)
@@ -113,7 +113,7 @@ function compile_backward_pass!(g, root)
           map(sibling -> get_prop(g, sibling.id, bag.id, :up_msg), siblings) |> # get sibling msgs
           sibling_msgs -> map(sibling_msg -> sibling_msg.args[1], sibling_msgs) |> # get var names
           sibling_msgs_var_names -> vcat(sibling_msgs_var_names, parent_msg.args[1], pot_var_name) |> # concat all factors
-          all_factors -> :(product($(all_factors...)))
+          all_factors -> :(prod($(all_factors...)))
       end
 
       # Get the variables that need to be marginalized

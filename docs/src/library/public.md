@@ -51,7 +51,7 @@ LastStage
 
 ```@docs
 compile_algo
-product
+prod
 marg
 redu
 norm

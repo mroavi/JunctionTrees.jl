@@ -51,7 +51,7 @@ function compile_bag_potentials(g)
       pot = Factor{Float64,0}((), Array{Float64,0}(undef))
     else
       # Yes, then compute the product of all potentials assigned to the current bag
-      pot = product(bag_factors...)
+      pot = prod(bag_factors...)
     end
     pot_var_name = Symbol("pot_", bag)
     push!(pots.args, :($pot_var_name = $pot))
