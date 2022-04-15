@@ -6,7 +6,7 @@ $(TYPEDEF)
 - `vals`
 
 Encodes a discrete function over the set of variables `vars` that maps each
-instatiation of `vars` into a nonnegative number in `vals`.
+instantiation of `vars` into a nonnegative number in `vals`.
 """
 struct Factor{T,N}
   vars::NTuple{N,Int64}
@@ -94,7 +94,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Sum out an aribitrary number of variables from factor A.
+Sum out an arbitrary number of variables from factor A.
 
 # Examples
 ```jldoctest
@@ -112,7 +112,7 @@ marg(A::Factor, V::Int...) = marg(A, V)
 """
 $(TYPEDSIGNATURES)
 
-Optimzed version of the function `indexin` defined in `Base`.
+Optimized version of the function `indexin` defined in `Base`.
 """
 function my_indexin(x,y)
   indxs = Vector{eltype(x)}(undef, length(x))

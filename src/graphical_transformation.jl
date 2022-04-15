@@ -129,7 +129,7 @@ $(TYPEDSIGNATURES)
 Calculate the "key" of `v` based on:
   1. The number of edges to be added if `v`'s neighbors were to be connected.
   2. The weight of `v` and its neighbors (also known as the induced bag).
-The number of edges to be added has more priority than the wieight of the
+The number of edges to be added has more priority than the weight of the
 induced cluster.
 The lower the number of edges to be added, the lower the key.
 The lower the weight, the lower the key.
@@ -161,7 +161,7 @@ This implementation is based on: "Inference in Belief Networks: A Procedural
 Guide" by Cecil Huang and Adnan Darwiche (1996) pg. 235.
 TODO: See https://matbesancon.xyz/post/2019-05-30-vertex-safe-removal/
 to implement this function using a vertex-safe version of Graphs.jl. This
-would avoid having to bookkeep the node ids in the orginal graph after
+would avoid having to bookkeep the node ids in the original graph after
 it is modified with `rev_vertex!`.
 
 Bookkepping example for the `paskin-example` problem:
@@ -275,7 +275,7 @@ $(TYPEDSIGNATURES)
 Calculate the "key" of `sepset` based on:
   1. Mass: The number of variables in `sepset`.
   2. Cost: The product of the cardinality of each variable in `sepset`.
-The number of variables in the sepset has higher priority than the prodcuct of
+The number of variables in the sepset has higher priority than the product of
 their cardinality.
 The higher the mass, the lower the key.
 The lower the cost, the lower the key.
@@ -337,7 +337,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Connect the bags such that the running intersection propperty is satisfied.
+Connect the bags such that the running intersection property is satisfied.
 """
 function connect_bags!(td::MetaGraph, mrf::MetaGraph, bags::Vector{Vector{Int64}}, cards)
 
