@@ -75,14 +75,14 @@ Sum out the variables in `V` from factor A.
 # Examples
 ```jldoctest
 A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
-marg(A, (2,))
+sum(A, (2,))
 
 # output
 
 Factor{Float64, 1}((1,), [1.0, 1.0])
 ```
 """
-function marg(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
+function sum(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
   ND == 0 && return Factor{Float64,0}((), Array{Float64,0}(undef))
   dims = my_indexin(V, A.vars) # map vars to dims
   r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
@@ -100,14 +100,14 @@ Sum out an arbitrary number of variables from factor A.
 ```jldoctest
 A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                      [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
-marg(A, 1, 2)
+sum(A, 1, 2)
 
 # output
 
 Factor{Float64, 1}((3,), [0.6199999999999999, 0.97])
 ```
 """
-marg(A::Factor, V::Int...) = marg(A, V)
+sum(A::Factor, V::Int...) = sum(A, V)
 
 """
 $(TYPEDSIGNATURES)

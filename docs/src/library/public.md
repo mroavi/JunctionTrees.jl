@@ -52,7 +52,7 @@ LastStage
 ```@docs
 compile_algo
 prod
-marg
+sum
 redu
 norm
 ```

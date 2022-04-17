@@ -14,11 +14,12 @@ module JunctionTrees
 using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics,
   DataStructures, DocStringExtensions
 
-export compile_algo, Factor, prod, marg, redu, norm, LastStage, ForwardPass,
+export compile_algo, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
   BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
 import Base:
   prod,
+  sum,
   eltype,
   IteratorEltype,
   parent

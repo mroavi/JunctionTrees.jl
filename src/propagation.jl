@@ -39,7 +39,7 @@ function compile_forward_pass!(g, root)
 
     # Marginalize vars to compute the upstream message
     msg_var_name = Symbol("msg_", bag.id, "_", parent_bag.id)
-    up_msg = :($msg_var_name = marg($joint, $(mar_vars...)))
+    up_msg = :($msg_var_name = sum($joint, $(mar_vars...)))
 
     # Set the resulting factor, the upstream message, as an edge property
     set_prop!(g, bag.id, parent_bag.id, :up_msg, up_msg)
@@ -123,7 +123,7 @@ function compile_backward_pass!(g, root)
 
       # Marginalize vars
       msg_var_name = Symbol("msg_", bag.id, "_", child.id)
-      down_msg = :($msg_var_name = marg($joint, $(mar_vars...)))
+      down_msg = :($msg_var_name = sum($joint, $(mar_vars...)))
 
       # Set the resulting factor, the downstream message, as an edge property
       set_prop!(g, bag.id, child.id, :down_msg, down_msg)

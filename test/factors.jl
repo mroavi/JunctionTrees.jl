@@ -48,7 +48,7 @@ using JunctionTrees
 
     A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
     marg_vars = (2,)
-    B = marg(A, marg_vars)
+    B = sum(A, marg_vars)
     @test B.vars == (1,)
     @test B.vals ≈ [1.0, 1.0]
 
@@ -56,18 +56,18 @@ using JunctionTrees
                                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
 
     marg_vars = (2,)
-    B = marg(A, marg_vars)
+    B = sum(A, marg_vars)
     @test B.vars == (1, 3)
     @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
     marg_var = 2
-    B = marg(A, marg_var)
+    B = sum(A, marg_var)
     @test B.vars == (1, 3)
     @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
     A = Factor{Float64,0}((), Array{Float64,0}(undef))
     marg_vars = ()
-    B = marg(A, marg_vars)
+    B = sum(A, marg_vars)
     @test B.vars == A.vars
 
   end
@@ -140,28 +140,28 @@ using JunctionTrees
 
     @test  C1.vals ≈ C2.vals
 
-    # Reduction followed by marg of unobserved var is equivalent to marg followed by reduction
+    # Reduction followed by sum of unobserved var is equivalent to sum followed by reduction
 
     marg_var = 1
 
-    C1 = redu(A, obs_vars, obs_vals) |> x -> marg(x, marg_var)
-    C2 = marg(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
+    C1 = redu(A, obs_vars, obs_vals) |> x -> sum(x, marg_var)
+    C2 = sum(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
 
     @test C1.vals ≈ C2.vals
 
-    # Reduction followed by marg of observed var is not equivalent to marg followed by reduction
+    # Reduction followed by sum of observed var is not equivalent to sum followed by reduction
 
     marg_var = 3
 
-    C1 = redu(A, obs_vars, obs_vals) |> x -> marg(x, marg_var)
-    C2 = marg(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
+    C1 = redu(A, obs_vars, obs_vals) |> x -> sum(x, marg_var)
+    C2 = sum(A, marg_var) |> x -> redu(x, obs_vars, obs_vals)
 
     @test C1.vals ≉ C2.vals
 
     # 
 
-    m1 = prod(A, B) |> x -> marg(x, (1,3))
-    m2 = redu(A, obs_vars, obs_vals) |> x -> prod(x, B) |> x -> marg(x, (1,3))
+    m1 = prod(A, B) |> x -> sum(x, (1,3))
+    m2 = redu(A, obs_vars, obs_vals) |> x -> prod(x, B) |> x -> sum(x, (1,3))
 
     @test m1.vals ≉ m2.vals
 
@@ -177,15 +177,15 @@ using JunctionTrees
     pot_5 = Factor{Float64, 3}((6, 8, 9), [0.006166980122542561 0.01952542918228385; 0.002944368873451448 0.009322239537460154;;; 0.005749141918775925 0.022858174721902973; 0.012041576805968082 0.047876443206091024]) |> (x->begin redu(x, (8,), (obsvals[1],)) end)
     pot_6 = Factor{Float64, 3}((4, 7, 8), [0.020498711397885946 0.010623701923114055; 0.029130886644614055 0.007475646119385946;;; 0.0020937321096140553 0.10401149158438594; 0.002975419847885945 0.07319041037311406]) |> (x->begin redu(x, (8,), (obsvals[1],)) end)
 
-    msg_5_4 = marg(pot_5, 9)
-    msg_6_4 = marg(pot_6, 7)
-    msg_4_3 = marg(prod(msg_5_4, msg_6_4, pot_4), 8)
+    msg_5_4 = sum(pot_5, 9)
+    msg_6_4 = sum(pot_6, 7)
+    msg_4_3 = sum(prod(msg_5_4, msg_6_4, pot_4), 8)
 
     # After partial evaluation pass
 
     msg_5_4 = Factor{Float64, 2}((6, 8), [0.011916122041318486 0.04238360390418683; 0.01498594567941953 0.05719868274355118])
     msg_6_4 = Factor{Float64, 2}((4, 8), [0.031122413321 0.106105223694; 0.036606532764 0.07616583022100001])
-    msg_4_3_pe = marg(redu(Factor{Float64, 4}((4, 5, 6, 8), [3.441515794150131e-7 2.168836045131908e-6; 1.6543195047310308e-7 6.242057417866914e-6;;; 2.282784287358366e-6 5.171422706329727e-7; 1.0973230394844235e-6 1.4883705726592891e-6;;;; 4.612281740155957e-5 2.379652486234837e-6; 1.3530801922221528e-5 4.179772661975819e-6;;; 0.00032829923389915167 6.088857192947307e-7; 9.631137374874008e-5 1.0694855229901174e-6]), (8,), (obsvals[1],)), 8)
+    msg_4_3_pe = sum(redu(Factor{Float64, 4}((4, 5, 6, 8), [3.441515794150131e-7 2.168836045131908e-6; 1.6543195047310308e-7 6.242057417866914e-6;;; 2.282784287358366e-6 5.171422706329727e-7; 1.0973230394844235e-6 1.4883705726592891e-6;;;; 4.612281740155957e-5 2.379652486234837e-6; 1.3530801922221528e-5 4.179772661975819e-6;;; 0.00032829923389915167 6.088857192947307e-7; 9.631137374874008e-5 1.0694855229901174e-6]), (8,), (obsvals[1],)), 8)
 
     @test msg_4_3.vals ≈ msg_4_3_pe.vals
 

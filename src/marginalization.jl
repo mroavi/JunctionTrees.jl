@@ -40,11 +40,11 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
         edge_marginal = :($edge_mar_var_name = prod($(up_msg.args[1]), $(down_msg.args[1])))
 
         # 1.1 Has this edge marginal expr already been added to the algo?
-        if !has_prop(g, edge, :marg)
+        if !has_prop(g, edge, :sum)
           # No, then add it
           push!(edge_marginals.args, edge_marginal)
           # Mark as added
-          set_prop!(g, edge, :marg, edge_marginal)
+          set_prop!(g, edge, :sum, edge_marginal)
         end
 
         # 1.2 Marginalize the other vars (if any) and store the resulting expr in the algo
@@ -52,7 +52,7 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
         if isempty(mar_vars) 
           push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $edge_mar_var_name))
         else
-          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(edge_marginal.args[1]), $(mar_vars...))))
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = sum($(edge_marginal.args[1]), $(mar_vars...))))
         end
 
         @goto continue_with_next_var # used to "break" from two nested loops
@@ -79,9 +79,9 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
           x -> :($bag_mar_var_name = prod($(x...)))
 
         # 2.1 Has this bag marginal expr already been added to the algo?
-        if !has_prop(g, bag, :marg)
+        if !has_prop(g, bag, :sum)
           push!(bag_marginals.args, bag_marginal) # no, then add it
-          set_prop!(g, bag, :marg, bag_marginal) # mark as added
+          set_prop!(g, bag, :sum, bag_marginal) # mark as added
         end
 
         # 2.2 Marginalize the other vars (if any) and store the resulting expr in the algo
@@ -89,7 +89,7 @@ function compile_unnormalized_marginals(g, nvars, partial_evaluation)
         if isempty(mar_vars) 
           push!(unnormalized_marginals.args, :($unnorm_mar_var_name = $bag_mar_var_name))
         else
-          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = marg($(bag_marginal.args[1]), $(mar_vars...))))
+          push!(unnormalized_marginals.args, :($unnorm_mar_var_name = sum($(bag_marginal.args[1]), $(mar_vars...))))
         end
 
         @goto continue_with_next_var
