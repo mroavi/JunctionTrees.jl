@@ -7,7 +7,7 @@ using JunctionTrees
 
     problem_number = "34"
     problem_filename = joinpath("Promedus_" * problem_number)
-    problem_dir = joinpath(@__DIR__, "../examples/problems/Promedus/", problem_number)
+    problem_dir = joinpath(@__DIR__, "examples/problems/Promedus/", problem_number)
     uai_filepath = joinpath(problem_dir, problem_filename * ".uai")
     uai_evid_filepath = joinpath(problem_dir, problem_filename * ".uai.evid")
     uai_mar_filepath = joinpath(problem_dir, problem_filename * ".uai.MAR")
