@@ -36,4 +36,6 @@ include("propagation.jl")
 include("marginalization.jl")
 include("normalization.jl")
 
+include("omeinsum.jl")
+
 end # module
