@@ -53,15 +53,12 @@ function popindices!(code::NestedEinsum{DynamicEinCode{LT}}, indices, out) where
         popindices!(arg, indices, ix)
         # loop over `indices` rather than `iy` because we want to keep the added indices ordered!
         for l in indices
-            #l ∉ iy && continue
-            #l ∉ ix && push!(ix, l)
             if l ∈ ix
                 l ∉ code.eins.iy && push!(code.eins.iy, l)
                 l ∉ out && push!(out, l)
             end
         end
     end
-    #return filter(∈(indices), code.eins.iy)
 end
 popindices!(se::SlicedEinsum, indices, out) = popindices!(se.eins, indices, out)
 popindices(code, indices) = (code = deepcopy(code); popindices!(code, indices, []); code)
