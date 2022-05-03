@@ -142,7 +142,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Reduce/invalidate all entries that are not consitent with the evidence.
+Reduce/invalidate all entries in `A` that are not consitent with the evidence
+passed in `vars` and `vals`, where each variable in `vars` is assigned the
+corresponding value in `vals`.
 
 # Examples
 ```jldoctest
@@ -169,8 +171,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Normalize the values in Factor A such that all probabilities lie between 0
-and 1.
+Normalize the values in Factor A such they sum up to 1.
 
 # Examples
 ```jldoctest
