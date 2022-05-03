@@ -77,14 +77,15 @@ end
     end
     @test npass >= nvars / 2
 
-    @time marginals = map(1:nvars) do openvertex
-        slice_contract(tn.code, Int[openvertex], tensors...) |> LinearAlgebra.normalize!
-    end;
-    npass = 0
-    for i=1:nvars
-        npass += (length(marginals[i]) == 1 && reference_marginals[i] == [0.0, 1]) || isapprox(marginals[i], reference_marginals[i]; rtol=1e-1, atol=1e-4)
-    end
-    @test npass >= nvars / 2
+    # an alternative approach, commented out because it is slower in tests.
+    # @time marginals = map(1:nvars) do openvertex
+    #     slice_contract(tn.code, Int[openvertex], tensors...) |> LinearAlgebra.normalize!
+    # end;
+    # npass = 0
+    # for i=1:nvars
+    #     npass += (length(marginals[i]) == 1 && reference_marginals[i] == [0.0, 1]) || isapprox(marginals[i], reference_marginals[i]; rtol=1e-1, atol=1e-4)
+    # end
+    # @test npass >= nvars / 2
     algo = compile_algo(
                 uai_filepath,
                 uai_evid_filepath = uai_evid_filepath,
