@@ -24,29 +24,29 @@ import LinearAlgebra
     @test opt1(ts...) ≈ slice_contract(opt4, [2,3], ts...)
 end
 
-for i in 1:50
-    @show i
-    problem_number = "$i"
-    problem_filename = joinpath("Promedus_" * problem_number)
-    problem_dir = joinpath(dirname(@__DIR__), "examples/problems/Promedus/", problem_number)
-    uai_filepath = joinpath(problem_dir, problem_filename * ".uai")
-    uai_evid_filepath = joinpath(problem_dir, problem_filename * ".uai.evid")
-    uai_mar_filepath = joinpath(problem_dir, problem_filename * ".uai.MAR")
-    td_filepath = joinpath(problem_dir, problem_filename * ".td")
+# for i in 1:50
+#     @show i
+#     problem_number = "$i"
+#     problem_filename = joinpath("Promedus_" * problem_number)
+#     problem_dir = joinpath(dirname(@__DIR__), "examples/problems/Promedus/", problem_number)
+#     uai_filepath = joinpath(problem_dir, problem_filename * ".uai")
+#     uai_evid_filepath = joinpath(problem_dir, problem_filename * ".uai.evid")
+#     uai_mar_filepath = joinpath(problem_dir, problem_filename * ".uai.MAR")
+#     td_filepath = joinpath(problem_dir, problem_filename * ".td")
 
-    try
-        reference_marginals = JunctionTrees.read_uai_mar_file(uai_mar_filepath)
-    catch
-        continue
-    end
+#     try
+#         reference_marginals = JunctionTrees.read_uai_mar_file(uai_mar_filepath)
+#     catch
+#         continue
+#     end
 
-    obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
-    nvars, cards, nclique, factors = JunctionTrees.read_uai_file(uai_filepath)
+#     obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
+#     nvars, cards, nclique, factors = JunctionTrees.read_uai_file(uai_filepath)
 
-    # does not optimize over open vertices
-    tn = TensorNetworksSolver(factors; fixedvertices=Dict(zip(obsvars, obsvals .- 1)), openvertices=Int[], optimizer=TreeSA(ntrials=1))
-    @info timespace_complexity(tn.code, OMEinsum.get_size_dict(getixsv(tn.code), tn.tensors))
-end
+#     # does not optimize over open vertices
+#     tn = TensorNetworksSolver(factors; fixedvertices=Dict(zip(obsvars, obsvals .- 1)), openvertices=Int[], optimizer=TreeSA(ntrials=1))
+#     @info timespace_complexity(tn.code, OMEinsum.get_size_dict(getixsv(tn.code), tn.tensors))
+# end
 
 @testset "tensor network solvers" begin
     ################# Load problem ####################
