@@ -13,7 +13,7 @@ Calculates the posterior marginals of each variable in the input graph. The
 input graph should be defined in the [UAI model file format](@ref).
 
 ```@example main
-algo = compile_algo("problems/paskin/paskin.uai")
+algo = compile_algo("problems/asia/asia.uai")
 eval(algo)
 obsvars, obsvals = Int64[], Int64[]
 marginals = run_algo(obsvars, obsvals)
@@ -28,10 +28,10 @@ evidence file format](@ref).
 
 ```@example main
 algo = compile_algo(
-         "problems/paskin/paskin.uai",
-         uai_evid_filepath = "problems/paskin/paskin.uai.evid")
+         "problems/asia/asia.uai",
+         uai_evid_filepath = "problems/asia/asia.uai.evid")
 eval(algo)
-obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/paskin/paskin.uai.evid")
+obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/asia/asia.uai.evid")
 marginals = run_algo(obsvars, obsvals)
 ```
 
@@ -43,11 +43,11 @@ should be defined in the [PACE graph format](@ref).
 
 ```@example main
 algo = compile_algo(
-         "problems/paskin/paskin.uai",
-         uai_evid_filepath = "problems/paskin/paskin.uai.evid",
-         td_filepath = "problems/paskin/paskin.td")
+         "problems/asia/asia.uai",
+         uai_evid_filepath = "problems/asia/asia.uai.evid",
+         td_filepath = "problems/asia/asia.td")
 eval(algo)
-obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/paskin/paskin.uai.evid")
+obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/asia/asia.uai.evid")
 marginals = run_algo(obsvars, obsvals)
 ```
 
@@ -57,7 +57,7 @@ Returns the expression of the junction tree algorithm up to the backward pass
 stage.
 
 ```@example main
-backward_pass_expr = compile_algo( "problems/paskin/paskin.uai", last_stage = BackwardPass)
+backward_pass_expr = compile_algo( "problems/asia/asia.uai", last_stage = BackwardPass)
 ```
 
 The stages supported are:
