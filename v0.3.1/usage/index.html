@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Usage · JunctionTrees.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.png" alt="JunctionTrees.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">JunctionTrees.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../background/">Background</a></li><li class="is-active"><a class="tocitem" href>Usage</a></li><li><span class="tocitem">Vizualization</span><ul><li><a class="tocitem" href="../visualization/junction_trees/">Junction trees</a></li><li><a class="tocitem" href="../visualization/markov_random_fields/">Markov random fields</a></li></ul></li><li><span class="tocitem">File formats</span><ul><li><a class="tocitem" href="../file_formats/uai/">UAI</a></li><li><a class="tocitem" href="../file_formats/pace/">PACE</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="../library/public/">Public</a></li><li><a class="tocitem" href="../library/internals/">Internals</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Usage</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Usage</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/mroavi/JunctionTrees.jl/blob/master/docs/src/usage.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h1><p>This section presents a series of examples that illustrate different uses of JunctionTrees.jl. Load the package to run the examples.</p><pre><code class="language-julia hljs">using JunctionTrees</code></pre><h4 id="Example-1"><a class="docs-heading-anchor" href="#Example-1">Example 1</a><a id="Example-1-1"></a><a class="docs-heading-anchor-permalink" href="#Example-1" title="Permalink"></a></h4><p>Calculates the posterior marginals of each variable in the input graph. The input graph should be defined in the <a href="../file_formats/uai/#UAI-model-file-format">UAI model file format</a>.</p><pre><code class="language-julia hljs">algo = compile_algo(&quot;problems/asia/asia.uai&quot;)
+eval(algo)
+obsvars, obsvals = Int64[], Int64[]
+marginals = run_algo(obsvars, obsvals)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8-element Vector{Factor{Float64, 1}}:
+ Factor{Float64, 1}((1,), [0.5, 0.5000000000000001])
+ Factor{Float64, 1}((2,), [0.5, 0.49999999999999994])
+ Factor{Float64, 1}((3,), [0.5, 0.5])
+ Factor{Float64, 1}((4,), [0.49999999999999994, 0.5])
+ Factor{Float64, 1}((5,), [0.5, 0.5])
+ Factor{Float64, 1}((6,), [0.5, 0.5])
+ Factor{Float64, 1}((7,), [0.49999999999999994, 0.5])
+ Factor{Float64, 1}((8,), [0.5, 0.5000000000000001])</code></pre><h4 id="Example-2"><a class="docs-heading-anchor" href="#Example-2">Example 2</a><a id="Example-2-1"></a><a class="docs-heading-anchor-permalink" href="#Example-2" title="Permalink"></a></h4><p>Calculates the posterior marginals of each variable in the input graph given some evidence. The input graph should be defined in the <a href="../file_formats/uai/#UAI-model-file-format">UAI model file format</a>. The evidence variables and values should be given in the <a href="../file_formats/uai/#UAI-evidence-file-format">UAI evidence file format</a>.</p><pre><code class="language-julia hljs">algo = compile_algo(
+         &quot;problems/asia/asia.uai&quot;,
+         uai_evid_filepath = &quot;problems/asia/asia.uai.evid&quot;)
+eval(algo)
+obsvars, obsvals = JunctionTrees.read_uai_evid_file(&quot;problems/asia/asia.uai.evid&quot;)
+marginals = run_algo(obsvars, obsvals)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8-element Vector{Factor{Float64, 1}}:
+ Factor{Float64, 1}((1,), [1.0, 0.0])
+ Factor{Float64, 1}((2,), [0.9999999998365611, 1.6343887218216758e-10])
+ Factor{Float64, 1}((3,), [0.9999926189958698, 7.381004130341263e-6])
+ Factor{Float64, 1}((4,), [0.9999999999455195, 5.448042829136154e-11])
+ Factor{Float64, 1}((5,), [0.9999999999455195, 5.4480428291361534e-11])
+ Factor{Float64, 1}((6,), [0.9999999998365611, 1.634388721821676e-10])
+ Factor{Float64, 1}((7,), [1.0, 0.0])
+ Factor{Float64, 1}((8,), [0.9999926189958698, 7.381004130341263e-6])</code></pre><h4 id="Example-3"><a class="docs-heading-anchor" href="#Example-3">Example 3</a><a id="Example-3-1"></a><a class="docs-heading-anchor-permalink" href="#Example-3" title="Permalink"></a></h4><p>Same as the previous example with the difference that a pre-constructed junction tree (which is passed as an argument) is used. This junction tree should be defined in the <a href="../file_formats/pace/#PACE-graph-format">PACE graph format</a>.</p><pre><code class="language-julia hljs">algo = compile_algo(
+         &quot;problems/asia/asia.uai&quot;,
+         uai_evid_filepath = &quot;problems/asia/asia.uai.evid&quot;,
+         td_filepath = &quot;problems/asia/asia.td&quot;)
+eval(algo)
+obsvars, obsvals = JunctionTrees.read_uai_evid_file(&quot;problems/asia/asia.uai.evid&quot;)
+marginals = run_algo(obsvars, obsvals)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">8-element Vector{Factor{Float64, 1}}:
+ Factor{Float64, 1}((1,), [1.0, 0.0])
+ Factor{Float64, 1}((2,), [0.9999999998365611, 1.6343887218216756e-10])
+ Factor{Float64, 1}((3,), [0.9999926189958698, 7.381004130341263e-6])
+ Factor{Float64, 1}((4,), [0.9999999999455195, 5.448042829136153e-11])
+ Factor{Float64, 1}((5,), [0.9999999999455195, 5.4480428291361534e-11])
+ Factor{Float64, 1}((6,), [0.9999999998365611, 1.6343887218216758e-10])
+ Factor{Float64, 1}((7,), [1.0, 0.0])
+ Factor{Float64, 1}((8,), [0.9999926189958698, 7.381004130341263e-6])</code></pre><h4 id="Example-4"><a class="docs-heading-anchor" href="#Example-4">Example 4</a><a id="Example-4-1"></a><a class="docs-heading-anchor-permalink" href="#Example-4" title="Permalink"></a></h4><p>Returns the expression of the junction tree algorithm up to the backward pass stage.</p><pre><code class="language-julia hljs">backward_pass_expr = compile_algo( &quot;problems/asia/asia.uai&quot;, last_stage = BackwardPass)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">:(function run_algo(obsvars::Vector{Int64}, obsvals::Vector{Int64})
+      begin
+          pot_1 = Factor{Float64, 2}((1, 7), [368.08 0.0027168; 0.0027168 368.08])
+          pot_2 = Factor{Float64, 2}((4, 8), [368.08 0.0027168; 0.0027168 368.08])
+          pot_3 = Factor{Float64, 2}((3, 4), [368.08 0.0027168; 0.0027168 368.08])
+          pot_4 = Factor{Float64, 3}((4, 5, 7), [135482.8864 0.999999744; 0.999999744 7.381002240000001e-6;;; 7.381002240000001e-6 0.999999744; 0.999999744 135482.8864])
+          pot_5 = Factor{Float64, 3}((2, 4, 6), [135482.8864 0.999999744; 7.381002240000001e-6 0.999999744;;; 0.999999744 7.381002240000001e-6; 0.999999744 135482.8864])
+          pot_6 = Factor{Float64, 3}((4, 5, 6), [135482.8864 7.381002240000001e-6; 0.999999744 0.999999744;;; 0.999999744 0.999999744; 7.381002240000001e-6 135482.8864])
+      end
+      begin
+          msg_1_4 = sum(pot_1, 1)
+          msg_2_4 = sum(pot_2, 8)
+          msg_3_5 = sum(pot_3, 3)
+          msg_5_6 = sum(prod(msg_3_5, pot_5), 2)
+          msg_6_4 = sum(prod(msg_5_6, pot_6), 6)
+      end
+      begin
+          msg_4_1 = sum(prod(msg_2_4, msg_6_4, pot_4), 4, 5)
+          msg_4_2 = sum(prod(msg_1_4, msg_6_4, pot_4), 5, 7)
+          msg_4_6 = sum(prod(msg_1_4, msg_2_4, pot_4), 7)
+          msg_6_5 = sum(prod(msg_4_6, pot_6), 5)
+          msg_5_3 = sum(prod(msg_6_5, pot_5), 2, 6)
+      end
+  end)</code></pre><p>The stages supported are:</p><pre><code class="language-julia hljs">instances(LastStage)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(ForwardPass, BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../background/">« Background</a><a class="docs-footer-nextpage" href="../visualization/junction_trees/">Junction trees »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.15 on <span class="colophon-date" title="Wednesday 18 May 2022 12:44">Wednesday 18 May 2022</span>. Using Julia version 1.7.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

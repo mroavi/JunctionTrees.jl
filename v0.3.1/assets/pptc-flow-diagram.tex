@@ -1,0 +1,14 @@
+\usepackage{tikz}
+\usetikzlibrary{positioning, shadows}
+\usepackage{bm} % used for bold letters in math environments
+
+\tikzset {
+  every node/.style={node distance=1.4cm},
+  mybox/.style= {
+    rectangle,rounded corners,drop shadow,minimum height=0.7cm,font=\small,
+    minimum width=\columnwidth*0.8,align=center,fill=white,draw=black,line
+    width=1pt
+  },
+  myarrow/.style= {draw=black,line width=1pt,-stealth},
+  mylabel/.style={text=black,right,xshift=2mm,text width=4.2cm,font=\small},
+}
