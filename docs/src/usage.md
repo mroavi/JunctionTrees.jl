@@ -9,7 +9,7 @@ using JunctionTrees
 
 #### Example 1
 
-Calculates the posterior marginals of each variable in the input graph. The
+Calculates the posterior marginal of each variable in the input graph. The
 input graph should be defined in the [UAI model file format](@ref).
 
 ```@example main
@@ -21,7 +21,7 @@ marginals = run_algo(obsvars, obsvals)
 
 #### Example 2
 
-Calculates the posterior marginals of each variable in the input graph given
+Calculates the posterior marginal of each variable in the input graph given
 some evidence. The input graph should be defined in the [UAI model file
 format](@ref). The evidence variables and values should be given in the [UAI
 evidence file format](@ref).
