@@ -55,7 +55,7 @@ $(TYPEDSIGNATURES)
 Performance critical code of the factor product operation.
 """
 function _product(A_vals_new, B_vals_new, C_vars)
-  Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
+  Factor{eltype(A_vals_new), length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
 end
 
 """
@@ -83,7 +83,7 @@ Factor{Float64, 1}((1,), [1.0, 1.0])
 ```
 """
 function sum(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
-  ND == 0 && return Factor{Float64,0}((), Array{Float64,0}(undef))
+  ND == 0 && return Factor{eltype(A),0}((), Array{eltype(A),0}(undef))
   dims = my_indexin(V, A.vars) # map vars to dims
   r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
   ret_vars = filter(!in(V), A.vars)

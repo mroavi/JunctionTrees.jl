@@ -30,6 +30,20 @@ using JunctionTrees
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
     # ------------------------------------------------------------------------------
+    # Posterior marginals given evidence with Float32 factor values
+    # ------------------------------------------------------------------------------
+
+    algo = compile_algo(
+             uai_filepath,
+             uai_evid_filepath = uai_evid_filepath,
+             factor_eltype = Float32,
+           )
+    eval(algo)
+    marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+
+    @test isapprox(marginals, reference_marginals)
+
+    # ------------------------------------------------------------------------------
     # Posterior marginals given evidence and existing junction tree
     # ------------------------------------------------------------------------------
 

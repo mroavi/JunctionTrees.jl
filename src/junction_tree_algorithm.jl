@@ -72,10 +72,11 @@ function compile_algo(uai_filepath::String;
                       apply_partial_evaluation::Bool = false,
                       last_stage::LastStage = Marginals,
                       smart_root_selection::Bool = true,
+                      factor_eltype = Float64,
                      )
 
   # Read PGM
-  nvars, cards, _, factors = read_uai_file(uai_filepath)
+  nvars, cards, _, factors = read_uai_file(uai_filepath, factor_eltype = factor_eltype)
   obsvars, obsvals = read_uai_evid_file(uai_evid_filepath)
 
   # Graphical transformation

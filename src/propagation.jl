@@ -159,7 +159,7 @@ Compile the forward and backward passes of messages.
 function compile_message_propagation!(g, root)
 
   # Initialize an empty vector of expressions of incoming messages for each bag
-  map(bag_id -> set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor{Float64}}[]), vertices(g))
+  map(bag_id -> set_prop!(g, bag_id, :in_msgs, Union{Expr, Factor}[]), vertices(g))
 
   forward_pass = compile_forward_pass!(g, root)
   backward_pass = compile_backward_pass!(g, root)

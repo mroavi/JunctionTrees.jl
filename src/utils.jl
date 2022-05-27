@@ -35,7 +35,7 @@ format.
 The UAI file formats are defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
-function read_uai_file(uai_filepath::String)
+function read_uai_file(uai_filepath; factor_eltype = Float64)
 
   # Read the uai file into an array of lines
   rawlines = open(uai_filepath) do file
@@ -63,12 +63,12 @@ function read_uai_file(uai_filepath::String)
     x -> reduce(*, x) |>                  # concatenate all string elements
     x -> split(x)                         # split the array using blank space as delimeter
 
-  tables2 = Array{Float64,1}[]
+  tables2 = Array{factor_eltype,1}[]
 
   let i = 1
     while i <= length(parsed_margs)
       nelements = parsed_margs[i] |> x -> parse(Int, x)
-      parsed_margs[i+1:i+nelements] |> x -> parse.(Float64, x) |> x -> push!(tables2, x)
+      parsed_margs[i+1:i+nelements] |> x -> parse.(factor_eltype, x) |> x -> push!(tables2, x)
       i += nelements + 1
     end
   end
@@ -82,7 +82,7 @@ function read_uai_file(uai_filepath::String)
   tables_sorted = map(indexin, scopes_sorted, scopes) |> x -> map(permutedims, tables, x)
 
   # Wrap the tables with their corresponding scopes in an array of Factor type
-  factors = [Factor{Float64,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
+  factors = [Factor{factor_eltype,length(scope)}(Tuple(scope), table) for (scope, table) in zip(scopes_sorted, tables_sorted)]
 
   return nvars, cards, ntables, factors
 
@@ -139,7 +139,7 @@ as in the model
 The UAI file formats are defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
-function read_uai_mar_file(uai_mar_filepath::String)
+function read_uai_mar_file(uai_mar_filepath::String; factor_eltype = Float64)
 
   # Read the uai mar file into an array of lines
   rawlines = open(uai_mar_filepath) do file
@@ -149,9 +149,9 @@ function read_uai_mar_file(uai_mar_filepath::String)
   parsed_margs = 
     split(rawlines[2]) |>
     x -> x[2:end] |>
-    x -> parse.(Float64, x)
+    x -> parse.(factor_eltype, x)
 
-  marginals = Array{Float64,1}[]
+  marginals = Array{factor_eltype,1}[]
 
   let i = 1
     while i <= length(parsed_margs)
