@@ -11,7 +11,7 @@ using JunctionTrees
     uai_filepath = joinpath(problem_dir, problem_filename * ".uai")
     uai_evid_filepath = joinpath(problem_dir, problem_filename * ".uai.evid")
     uai_mar_filepath = joinpath(problem_dir, problem_filename * ".uai.MAR")
-    td_filepath = joinpath(problem_dir, problem_filename * ".td")
+    td_filepath = joinpath(problem_dir, problem_filename * ".tamaki.td")
 
     reference_marginals = JunctionTrees.read_uai_mar_file(uai_mar_filepath)
     obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
