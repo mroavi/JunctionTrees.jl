@@ -62,7 +62,7 @@ td_filepath = "../problems/Promedus_26/Promedus_26.td"
 td = compile_algo(td_filepath)
 ```
 """
-function construct_td_graph(td_filepath::String)
+function construct_td_graph(td_filepath::AbstractString)
 
   _, _, _, bags, edges = read_td_file(td_filepath)
 

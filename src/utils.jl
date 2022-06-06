@@ -97,7 +97,7 @@ file path is an empty string, return empty vectors.
 The UAI file formats are defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
-function read_uai_evid_file(uai_evid_filepath::String)
+function read_uai_evid_file(uai_evid_filepath::AbstractString)
 
   if isempty(uai_evid_filepath)
     # No evidence
@@ -139,7 +139,7 @@ as in the model
 The UAI file formats are defined in:
 https://personal.utdallas.edu/~vibhav.gogate/uai16-evaluation/uaiformat.html
 """
-function read_uai_mar_file(uai_mar_filepath::String; factor_eltype = Float64)
+function read_uai_mar_file(uai_mar_filepath::AbstractString; factor_eltype = Float64)
 
   # Read the uai mar file into an array of lines
   rawlines = open(uai_mar_filepath) do file
@@ -173,7 +173,7 @@ Parse a tree decomposition instance described the PACE format.
 The PACE file format is defined in:
 https://pacechallenge.org/2017/treewidth/
 """
-function read_td_file(td_filepath::String)
+function read_td_file(td_filepath::AbstractString)
 
   # Read the td file into an array of lines
   rawlines = open(td_filepath) do file
