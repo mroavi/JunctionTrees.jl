@@ -1,7 +1,7 @@
 name = "JunctionTrees"
 uuid = "b732b382-80b5-46a8-aa9c-7d077ae04823"
 authors = ["Martin Roa Villescas <mroavi@gmail.com>"]
-version = "0.3.0"
+version = "0.3.2"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -18,7 +18,7 @@ OMEinsumContractionOrders = "6f22d1fd-8eed-4bb7-9776-e7d684900715"
 AbstractTrees = "0.3.4"
 Combinatorics = "1.0.2"
 DataStructures = "0.18.11"
-DocStringExtensions = "0.8.6"
+DocStringExtensions = "0.8.6, 0.9"
 Graphs = "1.6.0"
 MacroTools = "0.5.9"
 MetaGraphs = "0.7.1"

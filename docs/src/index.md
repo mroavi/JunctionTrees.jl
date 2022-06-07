@@ -4,7 +4,7 @@
 
 ```@raw html
 <div align="left">
-<img width="600px" src="./problems/Promedus_34/Promedus_34.svg" alt="Junction tree example"></img>
+<img width="600px" src="./assets/Promedus_34-td.svg" alt="Junction tree example"></img>
 </div>
 ```
 

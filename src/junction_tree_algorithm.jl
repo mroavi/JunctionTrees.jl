@@ -22,12 +22,13 @@ Return an expression of the junction tree algorithm that extracts the marginals
 of all the variables in the model.
 
 # Arguments
-- `uai_filepath::String`: path to the model file defined in the [UAI model file format](@ref).
-- `uai_evid_filepath::String = ""`: path to the evidence file defined in the [UAI evidence file format](@ref).
-- `td_filepath::String = ""`: path to a pre-constructed junction tree defined in the [PACE graph format](@ref).
+- `uai_filepath::AbstractString`: path to the model file defined in the [UAI model file format](@ref).
+- `uai_evid_filepath::AbstractString = ""`: path to the evidence file defined in the [UAI evidence file format](@ref).
+- `td_filepath::AbstractString = ""`: path to a pre-constructed junction tree defined in the [PACE graph format](@ref).
 - `apply_partial_evaluation::Bool = false`: optimize the algorithm using partial evaluation.
 - `last_stage::LastStage = Marginals`: return an expression up to the given stage. The options are `ForwardPass`, `BackwardPass`, `JointMarginals`, `UnnormalizedMarginals` and `Marginals`.
-- `smart_root_selection::Bool` = select as root the cluster with the largest state space.
+- `smart_root_selection::Bool = true`: select as root the cluster with the largest state space.
+- `factor_eltype::DataType = Float64`: type used to represent the factor values. 
 
 # Examples
 ```jldoctest
@@ -66,16 +67,17 @@ marginals = run_algo(obsvars, obsvals)
  Factor{Float64, 1}((6,), [0.6118571666785584, 0.3881428333214415])
 ```
 """
-function compile_algo(uai_filepath::String;
-                      uai_evid_filepath::String = "",
-                      td_filepath::String = "",
+function compile_algo(uai_filepath::AbstractString;
+                      uai_evid_filepath::AbstractString = "",
+                      td_filepath::AbstractString = "",
                       apply_partial_evaluation::Bool = false,
                       last_stage::LastStage = Marginals,
                       smart_root_selection::Bool = true,
+                      factor_eltype::DataType = Float64,
                      )
 
   # Read PGM
-  nvars, cards, _, factors = read_uai_file(uai_filepath)
+  nvars, cards, _, factors = read_uai_file(uai_filepath, factor_eltype = factor_eltype)
   obsvars, obsvals = read_uai_evid_file(uai_evid_filepath)
 
   # Graphical transformation

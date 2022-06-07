@@ -14,7 +14,7 @@ function assign_factors!(g, factors, root)
   # print_tree(root)
 
   # Initialize an empty vector of factors for each bag
-  map( bag_id -> set_prop!(g, bag_id, :factors, Factor{Float64}[]), vertices(g))
+  map(bag_id -> set_prop!(g, bag_id, :factors, Factor[]), vertices(g))
 
   # Traverse the tree in postorder and assign each factor to a bag (cluster) that
   # 1) covers its vars and 2) is closest to a leaf
@@ -38,7 +38,7 @@ $(TYPEDSIGNATURES)
 
 Compile each bag's potential into a Julia expression.
 """
-function compile_bag_potentials(g)
+function compile_bag_potentials(g, factor_eltype)
 
   pots = quote end |> rmlines
 
@@ -48,7 +48,7 @@ function compile_bag_potentials(g)
     bag_factors = get_prop(g, bag, :factors)
     if isempty(bag_factors)
       # No, then assign a "unit" potential to this bag
-      pot = Factor{Float64,0}((), Array{Float64,0}(undef))
+      pot = Factor{factor_eltype,0}((), Array{factor_eltype,0}(undef))
     else
       # Yes, then compute the product of all potentials assigned to the current bag
       pot = prod(bag_factors...)
@@ -78,7 +78,7 @@ function initialize_td_graph!(g, factors, smart_root_selection)
   root = select_rootnode(g, smart_root_selection = smart_root_selection)
   set_prop!(g, root.id, :isroot, true)
   assign_factors!(g, factors, root)
-  pots = compile_bag_potentials(g)
+  pots = compile_bag_potentials(g, eltype(factors[1]))
 
   return root, pots
 

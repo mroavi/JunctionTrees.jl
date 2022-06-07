@@ -55,7 +55,7 @@ $(TYPEDSIGNATURES)
 Performance critical code of the factor product operation.
 """
 function _product(A_vals_new, B_vals_new, C_vars)
-  Factor{Float64, length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
+  Factor{eltype(A_vals_new), length(C_vars)}(C_vars, A_vals_new .* B_vals_new)
 end
 
 """
@@ -83,7 +83,7 @@ Factor{Float64, 1}((1,), [1.0, 1.0])
 ```
 """
 function sum(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
-  ND == 0 && return Factor{Float64,0}((), Array{Float64,0}(undef))
+  ND == 0 && return Factor{eltype(A),0}((), Array{eltype(A),0}(undef))
   dims = my_indexin(V, A.vars) # map vars to dims
   r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
   ret_vars = filter(!in(V), A.vars)
@@ -142,7 +142,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Reduce/invalidate all entries that are not consitent with the evidence.
+Reduce/invalidate all entries in `A` that are not consitent with the evidence
+passed in `vars` and `vals`, where each variable in `vars` is assigned the
+corresponding value in `vals`.
 
 # Examples
 ```jldoctest
@@ -169,8 +171,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Normalize the values in Factor A such that all probabilities lie between 0
-and 1.
+Normalize the values in Factor A such they sum up to 1.
 
 # Examples
 ```jldoctest
