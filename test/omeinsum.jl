@@ -95,7 +95,7 @@ end
     @time marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
 end 
 
-@testset "tensor network solvers" begin
+@testset "gradient based tensor network solvers" begin
     ################# Load problem ####################
     problem_number = "14"
     problem_filename = joinpath("Promedus_" * problem_number)
@@ -111,12 +111,11 @@ end
 
     # does not optimize over open vertices
     rawcode = EinCode([[[i] for i in 1:nvars]..., [[factor.vars...] for factor in factors]...], Int[])  # labels for edge tensors
-    @show rawcode
     tensors = [[ones(Float32, 2) for i=1:length(cards)]..., getfield.(factors, :vals)...]
     tn = TensorNetworksSolver(rawcode, tensors; fixedvertices=Dict(zip(obsvars, obsvals .- 1)), optimizer=TreeSA(ntrials=1))
     @info timespace_complexity(tn.code, OMEinsum.get_size_dict(getixsv(tn.code), tensors))
+    marginals2 = JunctionTrees.gradient(tn.code, generate_tensors(tn))[1:length(cards)] .|> LinearAlgebra.normalize!
     @time marginals2 = JunctionTrees.gradient(tn.code, generate_tensors(tn))[1:length(cards)] .|> LinearAlgebra.normalize!
-    @show marginals2
     # for dangling vertices, the output size is 1.
     npass = 0
     for i=1:nvars
