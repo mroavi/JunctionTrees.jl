@@ -1,4 +1,4 @@
-using OMEinsum, OMEinsumContractionOrders
+using OMEinsum
 using JunctionTrees
 using Graphs, Test
 import LinearAlgebra

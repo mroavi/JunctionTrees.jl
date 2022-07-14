@@ -12,18 +12,16 @@ Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
-OMEinsumContractionOrders = "6f22d1fd-8eed-4bb7-9776-e7d684900715"
 
 [compat]
-AbstractTrees = "0.3.4"
+AbstractTrees = "0.4"
 Combinatorics = "1.0.2"
 DataStructures = "0.18.11"
 DocStringExtensions = "0.8.6, 0.9"
 Graphs = "1.6.0"
 MacroTools = "0.5.9"
 MetaGraphs = "0.7.1"
-OMEinsum = "0.6"
-OMEinsumContractionOrders = "0.6.7"
+OMEinsum = "0.7"
 julia = "1.7.0"
 
 [extras]
