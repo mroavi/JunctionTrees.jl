@@ -26,8 +26,9 @@ function boost_ex(ex::Expr, info, size_dict, optimizer)
         :(begin $(body...) end) => Expr(:block, boost_ex.(body, Ref(info), Ref(size_dict), Ref(optimizer))...)
         # sum-prod
         :($var = sum(prod($(tensors...)), $(labels...))) => begin
-            ixs = getindex.(Ref(info), tensors)
-            iy = setdiff(∪(ixs...), collect(Int, labels))
+            ixs = map(t->info[t], tensors)
+            # NOTE: sort because the prod sort the indices automatically
+            iy = sort(setdiff(∪(ixs...), collect(Int, labels)))
             code = EinCode(ixs, iy)
             optcode = optimize_code(code, size_dict, optimizer)
             info[var] = iy
@@ -40,7 +41,7 @@ function boost_ex(ex::Expr, info, size_dict, optimizer)
         end
         # prod (not optimized)
         :($var = prod($(tensors...))) => begin
-            # NOTE: prod sorts the dimensions!
+            # NOTE: sort because the prod sort the indices automatically
             info[var] = sort(∪(getindex.(Ref(info), tensors)...))
             ex
         end
@@ -74,17 +75,9 @@ end
 
 for CT in [:DynamicEinCode, :StaticEinCode, :NestedEinsum, :SlicedEinsum]
     @eval function OMEinsum.einsum(neinsum::$CT, @nospecialize(xs::NTuple{N,Factor} where N), size_dict::Dict)
-        #@show getfield.(xs, :vals)
-        #@show neinsum
-        #@show getindex.(Ref(size_dict), uniquelabels(neinsum))
-        #@show xs
-        #@show prod(xs...)
-        #target = sum(prod(xs...), setdiff(∪(getixsv(neinsum)...), getiyv(neinsum))...)
-        #got = Factor((OMEinsum.getiyv(neinsum)...,), einsum(neinsum, getfield.(xs, :vals), size_dict))
-        #@assert target.vars == got.vars
-        #@show target.vals, got.vals
-        #@assert target.vals ≈ got.vals
-        return Factor((OMEinsum.getiyv(neinsum)...,), einsum(neinsum, getfield.(xs, :vals), size_dict))
+        # TODO: remove this patch after fixing rank-0 factor.
+        tensors = map(x-> x isa (Factor{T,0} where T) ? fill(one(eltype(x.vals))) : x.vals, xs)
+        return Factor((OMEinsum.getiyv(neinsum)...,), einsum(neinsum, tensors, size_dict))
     end
 end
 
