@@ -13,9 +13,11 @@ module JunctionTrees
 
 using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics,
   DataStructures, DocStringExtensions
+using MLStyle, OMEinsum
 
 export compile_algo, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
   BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
+export boost_algo
 
 import Base:
   prod,
@@ -35,5 +37,6 @@ include("partial_evaluation.jl")
 include("propagation.jl")
 include("marginalization.jl")
 include("normalization.jl")
+include("boost.jl")
 
 end # module

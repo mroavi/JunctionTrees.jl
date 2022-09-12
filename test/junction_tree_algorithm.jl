@@ -29,6 +29,11 @@ using JunctionTrees
 
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
+    # boost the algorithm using OMEinsum
+    eval(boost_algo(algo))
+    marginals_boosted = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+    @test isapprox(marginals_boosted, reference_marginals, atol=0.03)
+
     # ------------------------------------------------------------------------------
     # Posterior marginals given evidence with Float32 factor values
     # ------------------------------------------------------------------------------

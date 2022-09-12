@@ -9,8 +9,10 @@ Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
+OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 
 [compat]
 AbstractTrees = "0.3.4, 0.4"
@@ -20,6 +22,8 @@ DocStringExtensions = "0.8.6, 0.9"
 Graphs = "1.6.0"
 MacroTools = "0.5.9"
 MetaGraphs = "0.7.1"
+MLStyle = "0.4"
+OMEinsum = "0.7"
 julia = "1.7.0"
 
 [extras]
