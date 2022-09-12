@@ -13,7 +13,7 @@ MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
 
 [compat]
-AbstractTrees = "0.3.4"
+AbstractTrees = "0.3.4, 0.4"
 Combinatorics = "1.0.2"
 DataStructures = "0.18.11"
 DocStringExtensions = "0.8.6, 0.9"
