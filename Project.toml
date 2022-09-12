@@ -5,6 +5,7 @@ version = "0.3.2"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
@@ -20,9 +21,9 @@ Combinatorics = "1.0.2"
 DataStructures = "0.18.11"
 DocStringExtensions = "0.8.6, 0.9"
 Graphs = "1.6.0"
+MLStyle = "0.4"
 MacroTools = "0.5.9"
 MetaGraphs = "0.7.1"
-MLStyle = "0.4"
 OMEinsum = "0.7"
 julia = "1.7.0"
 
