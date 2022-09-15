@@ -19,9 +19,9 @@ benchmarks = [
               "DBN",
               # "Grids",
               # "linkage",
-              # "ObjectDetection",
+              "ObjectDetection",
               "Pedigree",
-              # "Promedus",
+              "Promedus",
               # "relational",
               "Segmentation",
              ]
