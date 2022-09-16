@@ -204,7 +204,7 @@ version = "0.21.3"
 deps = ["AbstractTrees", "Artifacts", "Combinatorics", "DataStructures", "DocStringExtensions", "Graphs", "MLStyle", "MacroTools", "MetaGraphs", "OMEinsum"]
 path = ".."
 uuid = "b732b382-80b5-46a8-aa9c-7d077ae04823"
-version = "0.3.2"
+version = "0.3.3"
 
 [[deps.LLVM]]
 deps = ["CEnum", "LLVMExtra_jll", "Libdl", "Printf", "Unicode"]
