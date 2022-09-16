@@ -1,7 +1,7 @@
 name = "JunctionTrees"
 uuid = "b732b382-80b5-46a8-aa9c-7d077ae04823"
 authors = ["Martin Roa Villescas <mroavi@gmail.com>"]
-version = "0.3.2"
+version = "0.3.3"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
