@@ -70,8 +70,6 @@ for benchmark in benchmarks
 
       eval(algo)
 
-      obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
-
       SUITE["uai2014"][benchmark][problem]["omeinsum"][string(use_omeinsum)] =
       @benchmarkable run_algo($obsvars, $obsvals)
 
