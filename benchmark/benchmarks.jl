@@ -15,15 +15,15 @@ SUITE["uai2014"] = BenchmarkGroup()
 
 benchmarks = [
               # "Alchemy",
-              "CSP",
-              "DBN",
+              # "CSP",
+              # "DBN",
               # "Grids",
               # "linkage",
-              "ObjectDetection",
-              "Pedigree",
+              # "ObjectDetection",
+              # "Pedigree",
               "Promedus",
               # "relational",
-              "Segmentation",
+              # "Segmentation",
              ]
 
 for benchmark in benchmarks
