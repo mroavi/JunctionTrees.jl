@@ -15,13 +15,13 @@ SUITE["uai2014"] = BenchmarkGroup()
 
 benchmarks = [
               # "Alchemy",
-              # "CSP",
+              "CSP",
               # "DBN",
               # "Grids",
               # "linkage",
               # "ObjectDetection",
               # "Pedigree",
-              "Promedus",
+              # "Promedus",
               # "relational",
               # "Segmentation",
              ]
@@ -56,17 +56,17 @@ for benchmark in benchmarks
 
     SUITE["uai2014"][benchmark][problem]["omeinsum"] = BenchmarkGroup()
 
-    algo = compile_algo(
-                        uai_filepath;
-                        uai_evid_filepath = uai_evid_filepath, 
-                        td_filepath = td_filepath,
-                       )
-
     for use_omeinsum in [false, true]
 
-      if use_omeinsum
-        algo = boost_algo(algo)
-      end
+      algo = compile_algo(
+                          uai_filepath;
+                          uai_evid_filepath = uai_evid_filepath, 
+                          td_filepath = td_filepath,
+                         )
+
+      # if use_omeinsum
+      #   algo = boost_algo(algo)
+      # end
 
       eval(algo)
 
