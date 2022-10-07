@@ -19,7 +19,7 @@ function inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
   # filter_edges(g, :mar_obs_vars) |> mar_obs_edges -> map(x -> get_prop(g, x, :mar_obs_vars), mar_obs_edges) |> display
 
   for before_pass_msg in before_pass_msgs.args
-    if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
+    if @capture(before_pass_msg, var_ = sum(args__)) # parse the current msg (Note: this filters the line number nodes)
       src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
       # Is the current msg in the set of msgs that marginalize one or more observed vars?
       # AND is the sepset of the edge through which this msg passes not empty?
@@ -29,8 +29,8 @@ function inject_redus_in_msgs(g, before_pass_msgs, obsvars, obsvals)
         mar_obs_vars = get_prop(g, msg, :mar_obs_vars) |> x -> x.vars # get the marginalized observed vars
         indx_mar_obs_vars = indexin(mar_obs_vars, obsvars) # find index of each elem in mar_obs_vars in the obsvars array
         mar_obs_vals = map(i -> :(obsvals[$i]), indx_mar_obs_vars) |> Tuple
-        redu_expr = :(redu($(fargs[1]), $(mar_obs_vars), ($(mar_obs_vals...),))) # wrap the evaled prod in the redu expr
-        after_pass_msg = :($var = $f($redu_expr, $(fargs[2:end]...))) # wrap the redu expr in the msg
+        redu_expr = :(redu($(args[1]), $(mar_obs_vars), ($(mar_obs_vals...),))) # wrap the evaled prod in the redu expr
+        after_pass_msg = :($var = sum($redu_expr, $(args[2:end]...))) # wrap the redu expr in the msg
       else
         # No, then do not add a redu statement
         after_pass_msg = before_pass_msg

@@ -99,7 +99,7 @@ function partially_evaluate(g, before_pass_msgs)
   after_pass_msgs = quote end |> rmlines
 
   for before_pass_msg in before_pass_msgs.args
-    if @capture(before_pass_msg, var_ = f_(fargs__)) # parse the current msg (Note: this filters the line number nodes)
+    if @capture(before_pass_msg, var_ = sum(args__)) # parse the current msg (Note: this filters the line number nodes)
       src, dst = split(string(var), "_") |> x -> x[2:3] |> x -> parse.(Int, x) # get msg src and dst
       prop_name = Symbol("pre_eval_msg_", src, "_", dst) # construct property name
       pe_msg_prop = get_prop(g, Edge(src, dst), prop_name) # get the property from graph
@@ -111,10 +111,10 @@ function partially_evaluate(g, before_pass_msgs)
       # No, then evaluate the product contained in the message?
       elseif pe_msg_prop == EvalProductOnly
         # Is the first argument of the msg a product operation?
-        if @capture(fargs[1], prod(pargs__))
+        if @capture(args[1], prod(pargs__))
           # Yes, then evaluate it, wrap it in the sum operation and add the msg to the new expr
           prod_evaled = :(prod($(pargs...))) |> eval # eval the product 
-          after_pass_msg = :($var = $f($prod_evaled, $(fargs[2:end]...))) # wrap the evaled prod in the msg
+          after_pass_msg = :($var = sum($prod_evaled, $(args[2:end]...))) # wrap the evaled prod in the msg
         else
           # No, then do not modify the current message
           after_pass_msg = before_pass_msg
