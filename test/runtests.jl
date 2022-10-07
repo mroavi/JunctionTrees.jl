@@ -11,3 +11,7 @@ end
 @testset "tree" begin
   include("tree.jl")
 end
+
+@testset "utils" begin
+  include("utils.jl")
+end

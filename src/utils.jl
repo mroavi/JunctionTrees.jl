@@ -248,3 +248,27 @@ function construct_mrf_graph(nvars, factors)
   return mrf
 
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Get the tree width of the tree decomposition file passed as argument.
+
+# Example
+```jldoctest
+td_filepath = joinpath(artifact"uai2014", "Promedus_34.tamaki.td")
+get_tree_width(td_filepath; td="merlin")
+
+# output
+
+14
+```
+"""
+function get_tree_width(td_filepath::AbstractString; td="merlin")
+  tree_width = open(td_filepath) do file
+    for ln in eachline(file)
+        startswith(ln, "s") && return split(ln) |> x -> x[4] |> x -> parse(Int, x) |> x -> x-1
+    end
+  end
+  return tree_width
+end
