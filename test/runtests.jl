@@ -1,13 +1,13 @@
 using Test
 
-for file in filter(f -> endswith(f, ".jl"), readdir(@__DIR__))
+@testset "factors" begin
+  include("factors.jl")
+end
 
-  if file in ["runtests.jl",]
-    continue
-  end
+@testset "junction_tree_algorithm" begin
+  include("junction_tree_algorithm.jl")
+end
 
-  @testset "$(file)" begin
-    include(file)
-  end
-
+@testset "tree" begin
+  include("tree.jl")
 end
