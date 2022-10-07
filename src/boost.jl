@@ -21,7 +21,7 @@ end
 
 # boost a single statement
 function boost_ex(ex::Expr, info, size_dict, optimizer)
-    MLStyle.@match ex begin
+    @match ex begin
         # multiple
         :(begin $(body...) end) => Expr(:block, boost_ex.(body, Ref(info), Ref(size_dict), Ref(optimizer))...)
         # sum-prod

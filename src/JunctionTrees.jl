@@ -11,9 +11,10 @@ $(EXPORTS)
 """
 module JunctionTrees
 
-using Graphs, MetaGraphs, AbstractTrees, MacroTools, Combinatorics,
-  DataStructures, DocStringExtensions
-using MLStyle, OMEinsum
+using Graphs, MetaGraphs, AbstractTrees, DataStructures, DocStringExtensions, OMEinsum
+using Combinatorics: combinations
+using MacroTools: @capture, rmlines
+using MLStyle: @match
 
 export compile_algo, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
   BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
