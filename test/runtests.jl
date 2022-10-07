@@ -15,3 +15,7 @@ end
 @testset "utils" begin
   include("utils.jl")
 end
+
+@testset "doctests" begin
+  include("doctests.jl")
+end

@@ -32,7 +32,9 @@ of all the variables in the model.
 
 # Examples
 ```jldoctest
-algo = compile_algo("../examples/problems/paskin/paskin.uai")
+package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
+uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
+algo = compile_algo(uai_filepath)
 eval(algo)
 obsvars, obsvals = Int64[], Int64[]
 marginals = run_algo(obsvars, obsvals)
@@ -49,11 +51,14 @@ marginals = run_algo(obsvars, obsvals)
 ```
 
 ```jldoctest
+package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
+uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
+uai_evid_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai.evid")
 algo = compile_algo(
-         "../examples/problems/paskin/paskin.uai",
-         uai_evid_filepath = "../examples/problems/paskin/paskin.uai.evid")
+         uai_filepath,
+         uai_evid_filepath = uai_evid_filepath)
 eval(algo)
-obsvars, obsvals = JunctionTrees.read_uai_evid_file("../examples/problems/paskin/paskin.uai.evid")
+obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
 marginals = run_algo(obsvars, obsvals)
 
 # output

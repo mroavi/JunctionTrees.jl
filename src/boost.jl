@@ -5,12 +5,14 @@ Speed up the sum-product in the algorithm with einsum contraction routines in `O
 
 # Examples
 
-```jldoctest
-algo = compile_algo("../examples/problems/paskin/paskin.uai");
+```
+package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
+uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
+algo = compile_algo(uai_filepath);
 algo2 = boost_algo(algo)
 eval(algo2)
-
-# output
+obsvars, obsvals = Int64[], Int64[]
+marginals = run_algo(obsvars, obsvals)
 ```
 """
 function boost_algo(algo::Expr; optimizer=GreedyMethod())

@@ -253,16 +253,6 @@ end
 $(TYPEDSIGNATURES)
 
 Get the tree width of the tree decomposition file passed as argument.
-
-# Example
-```jldoctest
-td_filepath = joinpath(artifact"uai2014", "Promedus_34.tamaki.td")
-get_tree_width(td_filepath; td="merlin")
-
-# output
-
-14
-```
 """
 function get_tree_width(td_filepath::AbstractString; td="merlin")
   tree_width = open(td_filepath) do file
