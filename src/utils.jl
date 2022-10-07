@@ -215,6 +215,22 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Get the solution arguments of the tree decomposition file passed as argument.
+The tree decomposition file should be defined in the PACE format:
+https://pacechallenge.org/2017/treewidth/
+"""
+function get_td_soln(td_filepath::AbstractString)
+  soln_args = open(td_filepath) do file
+    for ln in eachline(file)
+        startswith(ln, "s") && return split(ln) |> x -> x[3:end] |> x -> parse.(Int, x)
+    end
+    return [missing, missing, missing]
+  end
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Mark which nodes of `g` correspond to leaves using a property.
 """
 function mark_leaves!(g::MetaGraph)
@@ -247,18 +263,4 @@ function construct_mrf_graph(nvars, factors)
 
   return mrf
 
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Get the tree width of the tree decomposition file passed as argument.
-"""
-function get_tree_width(td_filepath::AbstractString; td="merlin")
-  tree_width = open(td_filepath) do file
-    for ln in eachline(file)
-        startswith(ln, "s") && return split(ln) |> x -> x[4] |> x -> parse(Int, x) |> x -> x-1
-    end
-  end
-  return tree_width
 end

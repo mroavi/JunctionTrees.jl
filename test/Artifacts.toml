@@ -1,6 +1,6 @@
 [uai2014]
-git-tree-sha1 = "480aabc22378f9edaa9cd24798de9f416c7d1a49"
+git-tree-sha1 = "b542e3def878031ac244a97a539b502dd755b4b1"
 
     [[uai2014.download]]
-    sha256 = "dd2265fe93eac73a3430f1d98bcd13162ca079f3a9cf7fa529b9c39c4534e671"
-    url = "https://gist.github.com/mroavi/8d38625bd8731cefc6788b941256cab3/raw/480aabc22378f9edaa9cd24798de9f416c7d1a49.tar.gz"
+    sha256 = "0bdc2cfd72395d21f80914eb9b061e5494635950316a031179b8e8afcc613668"
+    url = "https://gist.github.com/mroavi/50993627d6bf699e02f595a646e96675/raw/b542e3def878031ac244a97a539b502dd755b4b1.tar.gz"
