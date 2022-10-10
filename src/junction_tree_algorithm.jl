@@ -107,6 +107,11 @@ function compile_algo(uai_filepath::AbstractString;
     forward_pass, backward_pass = partial_evaluation(td, pots, forward_pass, backward_pass)
   end
 
+  # Normalize the messages that contain a product
+  # (this is to avoid underflows in large problems)
+  forward_pass = normalize_messages(forward_pass)
+  backward_pass = normalize_messages(backward_pass)
+
   # Observation entry
   if apply_partial_evaluation
     pots, forward_pass, backward_pass = inject_redus(td, pots, forward_pass, backward_pass, obsvars, obsvals)

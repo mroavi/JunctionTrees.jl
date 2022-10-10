@@ -167,3 +167,35 @@ function compile_message_propagation!(g, root)
   return forward_pass, backward_pass
 
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Normalize the result of the product in each message in `before_pass_msgs`.
+"""
+function normalize_messages(before_pass_msgs)
+
+  after_pass_msgs = quote end |> rmlines
+
+  for before_pass_msg in before_pass_msgs.args
+
+    if @capture(before_pass_msg, var_ = sum(prod(pargs__), sargs__)) # parse the current msg (note: this filters the line number nodes)
+
+      after_pass_msg = :($var = sum(norm(prod($(pargs...))), $(sargs...)))
+
+    else
+      # The current msg is an evaled factor expr. Add it unmodified to the resulting expr arr
+      after_pass_msg = before_pass_msg
+    end
+
+    # Push the msg to the new expr
+    push!(after_pass_msgs.args, after_pass_msg)
+
+    # # DEBUG:
+    # println("Before: ", before_pass_msg, "\n", "After:  ", after_pass_msg, "\n")
+
+  end
+
+  return after_pass_msgs
+
+end
