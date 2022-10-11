@@ -40,7 +40,7 @@ for benchmark in benchmarks
         uai_mar_filepath = joinpath(artifact"uai2014", problem * ".uai.MAR")
         td_filepath = joinpath(artifact"uai2014", problem * ".tamaki.td")
 
-        nvars, cards, nclique, factors = read_uai_file(uai_filepath; factor_eltype=Float64)
+        nvars, cards, nclique, factors = read_uai_file(uai_filepath; factor_eltype = Float64)
         obsvars, obsvals = read_uai_evid_file(uai_evid_filepath)
         reference_marginals = read_uai_mar_file(uai_mar_filepath)
 
@@ -56,7 +56,7 @@ for benchmark in benchmarks
                             uai_filepath;
                             uai_evid_filepath = uai_evid_filepath, 
                             td_filepath = td_filepath,
-                            factor_eltype=Float64,
+                            factor_eltype = Float64,
                           )
 
         eval(algo)
@@ -64,7 +64,7 @@ for benchmark in benchmarks
         println("      Running algo...")
         marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
 
-        @test isapprox(marginals, reference_marginals, atol=0.01)
+        @test isapprox(marginals, reference_marginals, atol = 0.01)
 
         # ------------------------------------------------------------------------------
         # OMEinsum backend
@@ -78,17 +78,16 @@ for benchmark in benchmarks
                             uai_filepath;
                             uai_evid_filepath = uai_evid_filepath, 
                             td_filepath = td_filepath,
-                            factor_eltype=Float64,
+                            factor_eltype = Float64,
+                            use_omeinsum = true,
                           )
-
-        algo = boost_algo(algo)
 
         eval(algo)
 
         println("      Running algo...")
         marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
 
-        @test isapprox(marginals, reference_marginals, atol=0.01)
+        @test isapprox(marginals, reference_marginals, atol = 0.01)
 
       end
     end

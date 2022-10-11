@@ -29,6 +29,7 @@ of all the variables in the model.
 - `last_stage::LastStage = Marginals`: return an expression up to the given stage. The options are `ForwardPass`, `BackwardPass`, `JointMarginals`, `UnnormalizedMarginals` and `Marginals`.
 - `smart_root_selection::Bool = true`: select as root the cluster with the largest state space.
 - `factor_eltype::DataType = Float64`: type used to represent the factor values. 
+- `use_omeinsum::Bool = false`: use the OMEinsum tensor network contraction package as backend for the factor operations.
 
 # Examples
 ```jldoctest
@@ -79,6 +80,7 @@ function compile_algo(uai_filepath::AbstractString;
                       last_stage::LastStage = Marginals,
                       smart_root_selection::Bool = true,
                       factor_eltype::DataType = Float64,
+                      use_omeinsum::Bool = false,
                      )
 
   # Read PGM
@@ -190,6 +192,13 @@ function compile_algo(uai_filepath::AbstractString;
   variables = [:obsvars, :obsvals]
   body = algo
 
-  return generate_function_expression(function_name, sig, variables, body)
+  ret = generate_function_expression(function_name, sig, variables, body)
+
+  # OMEinsum
+  if use_omeinsum
+    ret = boost_algo(ret)
+  end
+
+  return ret
 
 end

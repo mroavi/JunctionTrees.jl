@@ -18,7 +18,6 @@ using MLStyle: @match
 
 export compile_algo, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
   BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
-export boost_algo
 
 import Base:
   prod,
