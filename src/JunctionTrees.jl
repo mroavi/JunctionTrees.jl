@@ -37,6 +37,6 @@ include("partial_evaluation.jl")
 include("propagation.jl")
 include("marginalization.jl")
 include("normalization.jl")
-include("boost.jl")
+include("omeinsum.jl")
 
 end # module

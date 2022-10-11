@@ -32,7 +32,7 @@ of all the variables in the model.
 - `use_omeinsum::Bool = false`: use the OMEinsum tensor network contraction package as backend for the factor operations.
 
 # Examples
-```jldoctest
+```
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
 algo = compile_algo(uai_filepath)
@@ -51,7 +51,7 @@ marginals = run_algo(obsvars, obsvals)
  Factor{Float64, 1}((6,), [0.5968155611613972, 0.4031844388386027])
 ```
 
-```jldoctest
+```
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
 uai_evid_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai.evid")
