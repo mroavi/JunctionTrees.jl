@@ -9,11 +9,11 @@ benchmarks = [
               # "CSP",
               # "DBN",
               # "Grids",
-              # "linkage",
-              # "ObjectDetection",
+              # "linkage", # fails: OutOfMemoryError (problems 15,20,23)
+              # "ObjectDetection", # fails from 36 onwards
               # "Pedigree",
               "Promedus",
-              # "relational",
+              # "relational", # fails: OutOfMemoryError (problem 1), Kill signal (problem 2)
               # "Segmentation",
              ]
 
@@ -49,6 +49,7 @@ benchmarks = [
                               uai_filepath;
                               uai_evid_filepath = uai_evid_filepath, 
                               td_filepath = td_filepath,
+                              factor_eltype=Float64,
                             )
 
           eval(algo)
