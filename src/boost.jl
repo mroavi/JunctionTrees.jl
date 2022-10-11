@@ -36,6 +36,16 @@ function boost_ex(ex::Expr, info, size_dict, optimizer)
             info[var] = iy
             :($var = $einsum($optcode, ($(tensors...),), $size_dict))
         end
+        # sum-prod-norm (TODO: add normalization using OMEinsum notation)
+        :($var = sum(norm(prod($(tensors...))), $(labels...))) => begin
+            ixs = map(t->info[t], tensors)
+            # NOTE: sort because the prod sort the indices automatically
+            iy = sort(setdiff(∪(ixs...), collect(Int, labels)))
+            code = EinCode(ixs, iy)
+            optcode = optimize_code(code, size_dict, optimizer)
+            info[var] = iy
+            :($var = $einsum($optcode, ($(tensors...),), $size_dict))
+        end
         # sum (not optimized)
         :($var = sum($tensor, $(labels...))) => begin
             info[var] = setdiff(info[tensor], labels)
