@@ -9,11 +9,11 @@ benchmarks = [
               # "CSP",
               # "DBN",
               # "Grids",
-              # "linkage",
-              # "ObjectDetection",
+              # "linkage", # fails: OutOfMemoryError (problems 15,20,23)
+              # "ObjectDetection", # fails from 36 onwards
               # "Pedigree",
               "Promedus",
-              # "relational",
+              # "relational", # fails: OutOfMemoryError (problem 1), Kill signal (problem 2)
               # "Segmentation",
              ]
 
@@ -21,6 +21,8 @@ benchmarks = [
   for benchmark in benchmarks
 
     @testset "$(benchmark) benchmark" begin
+
+      println("Benchmark: $(benchmark)")
 
       rexp = Regex("($(benchmark)_\\d*)(\\.uai)\$") 
       problems = readdir(artifact"uai2014"; sort=false) |> 
@@ -31,6 +33,8 @@ benchmarks = [
       for problem in problems
 
         @testset "$(problem)" begin
+
+          println("  Problem: $(problem)")
 
           uai_filepath = joinpath(artifact"uai2014", problem * ".uai")
           uai_evid_filepath = joinpath(artifact"uai2014", problem * ".uai.evid")
@@ -45,6 +49,7 @@ benchmarks = [
                               uai_filepath;
                               uai_evid_filepath = uai_evid_filepath, 
                               td_filepath = td_filepath,
+                              factor_eltype=Float64,
                             )
 
           eval(algo)
