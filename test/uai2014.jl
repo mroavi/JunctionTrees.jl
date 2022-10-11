@@ -22,6 +22,8 @@ benchmarks = [
 
     @testset "$(benchmark) benchmark" begin
 
+      println("Benchmark: $(benchmark)")
+
       rexp = Regex("($(benchmark)_\\d*)(\\.uai)\$") 
       problems = readdir(artifact"uai2014"; sort=false) |> 
         x -> map(y -> match(rexp, y), x) |>
@@ -31,6 +33,8 @@ benchmarks = [
       for problem in problems
 
         @testset "$(problem)" begin
+
+          println("  Problem: $(problem)")
 
           uai_filepath = joinpath(artifact"uai2014", problem * ".uai")
           uai_evid_filepath = joinpath(artifact"uai2014", problem * ".uai.evid")
