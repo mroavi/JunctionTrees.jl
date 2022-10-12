@@ -64,7 +64,7 @@ $(TYPEDSIGNATURES)
 Compute a factor product of an arbitrary number of factors.
 """
 function prod(F::Vararg{Factor{T}}) where T
-  reduce(prod, F; init = Factor{T,0}((), Array{T,0}(undef)))
+  reduce(prod, F; init = Factor{T,0}((), Array{T,0}(ones())))
 end
 
 """
@@ -83,7 +83,7 @@ Factor{Float64, 1}((1,), [1.0, 1.0])
 ```
 """
 function sum(A::Factor{T,ND}, V::NTuple{N,Int64} where N) where {T,ND}
-  ND == 0 && return Factor{eltype(A),0}((), Array{eltype(A),0}(undef))
+  ND == 0 && return Factor{eltype(A),0}((), Array{eltype(A),0}(ones()))
   dims = my_indexin(V, A.vars) # map vars to dims
   r_size = ntuple(d->d in dims ? 1 : size(A.vals,d), ND) # assign 1 to summed out dims
   ret_vars = filter(!in(V), A.vars)

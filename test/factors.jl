@@ -23,19 +23,19 @@ using JunctionTrees
                        [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3)
 
     A = Factor{Float64,2}((1, 2), [0.5 0.8; 0.1 0.0; 0.3 0.9])
-    B = Factor{Float64,0}((), Array{Float64,0}(undef))
+    B = Factor{Float64,0}((), Array{Float64,0}(ones()))
     C = prod(A, B)
     @test C.vars == (1, 2)
     @test C.vals ≈ [0.5 0.8; 0.1 0.0; 0.3 0.9]
 
-    A = Factor{Float64,0}((), Array{Float64,0}(undef))
+    A = Factor{Float64,0}((), Array{Float64,0}(ones()))
     B = Factor{Float64,2}((1, 2), [0.5 0.8; 0.1 0.0; 0.3 0.9])
     C = prod(A, B)
     @test C.vars == (1, 2)
     @test C.vals ≈ [0.5 0.8; 0.1 0.0; 0.3 0.9]
 
-    A = Factor{Float64,0}((), Array{Float64,0}(undef))
-    B = Factor{Float64,0}((), Array{Float64,0}(undef))
+    A = Factor{Float64,0}((), Array{Float64,0}(ones()))
+    B = Factor{Float64,0}((), Array{Float64,0}(ones()))
     C = prod(A, B)
     @test C.vars == ()
     @test ndims(C.vals) == 0
@@ -65,7 +65,7 @@ using JunctionTrees
     @test B.vars == (1, 3)
     @test vec(B.vals) ≈ [0.33, 0.05, 0.24, 0.51, 0.07, 0.39]
 
-    A = Factor{Float64,0}((), Array{Float64,0}(undef))
+    A = Factor{Float64,0}((), Array{Float64,0}(ones()))
     marg_vars = ()
     B = sum(A, marg_vars)
     @test B.vars == A.vars
