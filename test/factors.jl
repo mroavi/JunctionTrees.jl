@@ -119,6 +119,10 @@ using JunctionTrees
     B = norm(A)
     @test sum(B.vals) ≈ 1.0
 
+    A = Factor{Float64,0}((), Array{Float64,0}(ones()))
+    B = norm(A)
+    @test sum(B.vals) ≈ 1.0
+
   end
 
   ## Factor identities

@@ -183,6 +183,7 @@ norm(A)
 Factor{Float64, 2}((1, 2), [0.1 0.2; 0.3 0.4])
 ```
 """
-function norm(A::Factor)
+function norm(A::Factor{T,N}) where {T,N}
+  N == 0 && return Factor{eltype(A),0}((), Array{eltype(A),0}(ones()))
   return Factor(A.vars, A.vals ./ sum(A.vals))
 end
