@@ -173,15 +173,31 @@ $(TYPEDSIGNATURES)
 
 Normalize the result of the product in each message in `before_pass_msgs`.
 """
-function normalize_messages(before_pass_msgs)
+function normalize_messages(pots, before_pass_msgs)
+
+  eval(pots)
 
   after_pass_msgs = quote end |> rmlines
 
   for before_pass_msg in before_pass_msgs.args
 
-    if @capture(before_pass_msg, var_ = sum(prod(pargs__), sargs__)) # parse the current msg (note: this filters the line number nodes)
+    eval(before_pass_msg)
 
-      after_pass_msg = :($var = sum(norm(prod($(pargs...))), $(sargs...)))
+    # Parse the current msg (note: this filters the line number nodes)
+    if @capture(before_pass_msg, var_ = sum(prod(pargs__), sargs__)) && any(isinf, eval(var).vals)
+
+      after_pass_msg = :($var = sum(prod(norm.(tuple($(pargs...)))...), $(sargs...)))
+
+      any(isposinf, eval(var).vals) && @warn """Overflow occured in:
+      \t$before_pass_msg
+      Converted to:
+      \t$after_pass_msg"""
+      any(isneginf, eval(var).vals) && @warn """Underflow occured in:
+      \t$before_pass_msg
+      Converted to:
+      \t$after_pass_msg"""
+
+      eval(after_pass_msg) # overwrite the current message with its normalized version
 
     else
       # The current msg is an evaled factor expr. Add it unmodified to the resulting expr arr
@@ -195,6 +211,8 @@ function normalize_messages(before_pass_msgs)
     # println("Before: ", before_pass_msg, "\n", "After:  ", after_pass_msg, "\n")
 
   end
+
+  # @show after_pass_msgs
 
   return after_pass_msgs
 

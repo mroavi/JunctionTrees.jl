@@ -104,12 +104,11 @@ function compile_algo(uai_filepath::AbstractString;
   # Propagation
   forward_pass, backward_pass = compile_message_propagation!(td, root)
 
-  # TODO: add normalization statements only when necessary
   if true
     # Normalize the messages that contain a product
     # (this is to avoid underflows in large problems)
-    forward_pass = normalize_messages(forward_pass)
-    backward_pass = normalize_messages(backward_pass)
+    forward_pass = normalize_messages(pots, forward_pass)
+    backward_pass = normalize_messages(pots, backward_pass)
   end
 
   # Partial evaluation
