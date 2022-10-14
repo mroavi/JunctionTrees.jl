@@ -123,6 +123,12 @@ using JunctionTrees
     B = norm(A)
     @test sum(B.vals) ≈ 1.0
 
+    A = Factor{Float64,1}((1,), [0.11; 0.89])
+    B = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
+    C,D = norm.((A, B))
+    @test sum(C.vals) ≈ 1.0
+    @test sum(D.vals) ≈ 1.0
+
   end
 
   ## Factor identities
