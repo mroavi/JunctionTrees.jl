@@ -108,26 +108,24 @@ using JunctionTrees
 
     A = Factor{Float64,1}((1,), [0.22; 0.89])
     B = norm(A)
+    @test B.vars == A.vars
     @test sum(B.vals) ≈ 1.0
 
     A = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
     B = norm(A)
+    @test B.vars == A.vars
     @test sum(B.vals) ≈ 1.0
 
     A = Factor{Float64,3}((1, 2, 3), cat([0.25 0.08; 0.05 0.0; 0.15 0.09],
                                          [0.35 0.16; 0.07 0.0; 0.21 0.18], dims=3))
     B = norm(A)
+    @test B.vars == A.vars
     @test sum(B.vals) ≈ 1.0
 
     A = Factor{Float64,0}((), Array{Float64,0}(ones()))
     B = norm(A)
+    @test B.vars == A.vars
     @test sum(B.vals) ≈ 1.0
-
-    A = Factor{Float64,1}((1,), [0.11; 0.89])
-    B = Factor{Float64,2}((1, 2), [0.59 0.41; 0.22 0.78])
-    C,D = norm.((A, B))
-    @test sum(C.vals) ≈ 1.0
-    @test sum(D.vals) ≈ 1.0
 
   end
 
