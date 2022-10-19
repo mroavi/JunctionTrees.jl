@@ -171,49 +171,163 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Normalize the result of the product in each message in `before_pass_msgs`.
+Normalize the result of the product in each message in `before_pass_forward_msgs`.
 """
-function normalize_messages(pots, before_pass_msgs)
+function normalize_messages(obsvals, before_pass_forward_msgs, before_pass_backward_msgs, pots)
 
+  before_pass_all_msgs = Expr(:block, vcat(before_pass_forward_msgs.args,
+                                           before_pass_backward_msgs.args,
+                                          )...)
+
+  after_pass_all_msgs = quote end |> rmlines
+
+  eval(:(obsvals = $obsvals))
   eval(pots)
 
-  after_pass_msgs = quote end |> rmlines
+  for before_pass_msg in before_pass_all_msgs.args
 
-  for before_pass_msg in before_pass_msgs.args
-
+    # Eval the msg to check whether it causes an overflow/underflow
     eval(before_pass_msg)
 
-    # Parse the current msg (note: this filters the line number nodes)
-    if @capture(before_pass_msg, var_ = sum(prod(pargs__), sargs__)) && any(isinf, eval(var).vals)
+    # Is the curr msg a sum-prod msg AND did it cause an overflow/underflow?
+    if @capture(before_pass_msg, imsg_ = sum(prod(pargs__), sargs__)) && any(isinf,eval(imsg).vals)
 
-      after_pass_msg = :($var = sum(prod(norm.(tuple($(pargs...)))...), $(sargs...)))
+      any(isposinf, eval(imsg).vals) && @warn "Overflow occured in:\n\t$before_pass_msg"
+      any(isneginf, eval(imsg).vals) && @warn "Underflow occured in:\n\t$before_pass_msg"
 
-      any(isposinf, eval(var).vals) && @warn """Overflow occured in:
-      \t$before_pass_msg
-      Converted to:
-      \t$after_pass_msg"""
-      any(isneginf, eval(var).vals) && @warn """Underflow occured in:
-      \t$before_pass_msg
-      Converted to:
-      \t$after_pass_msg"""
+      # Yes, then find each msg in `pargs` in `after_pass_all_msgs` and replace it in line
+      for parg in pargs
+        # Iterate the `after_pass_all_msgs` in reverse order to search and replace `parg`
+        # with its normalized version
+        for i in Iterators.reverse(eachindex(after_pass_all_msgs.args))
+          # Only consider sum-prod messages
+          if @capture(after_pass_all_msgs.args[i], jmsg_ = sum(prod(pargs2__), sargs2__))
+            if jmsg == parg
+              # Replace the msg with its normalized version in line
+              after_pass_all_msgs.args[i] = :($jmsg = sum(prod($(pargs2...)), $(sargs2...)) |> norm)
+              # Re-eval the msg now that it is normalized version
+              eval(after_pass_all_msgs.args[i]) 
+              # Break from iterating through `after_pass_all_msgs`
+              break
+            end
+          end
+        end
+      end
 
-      eval(after_pass_msg) # overwrite the current message with its normalized version
+      # Re-eval the current msg now that its argument msgs have been normalized
+      eval(before_pass_msg)
 
-    else
-      # The current msg is an evaled factor expr. Add it unmodified to the resulting expr arr
-      after_pass_msg = before_pass_msg
+      any(isposinf, eval(imsg).vals) && @error "Overflow not corrected in:\n\t$before_pass_msg"
+      any(isneginf, eval(imsg).vals) && @error "Underflow not corrected in :\n\t$before_pass_msg"
+
     end
 
-    # Push the msg to the new expr
-    push!(after_pass_msgs.args, after_pass_msg)
-
-    # # DEBUG:
-    # println("Before: ", before_pass_msg, "\n", "After:  ", after_pass_msg, "\n")
+    # Push the current msg to the new expr
+    push!(after_pass_all_msgs.args, before_pass_msg)
 
   end
 
-  # @show after_pass_msgs
+  n_msgs_per_pass = length(before_pass_forward_msgs.args)
+  idxs_forward_msgs = 1:n_msgs_per_pass
+  idxs_backward_msgs = (n_msgs_per_pass + 1):(2 * n_msgs_per_pass)
+  after_pass_forward_msgs = Expr(:block, after_pass_all_msgs.args[idxs_forward_msgs]...)
+  after_pass_backward_msgs = Expr(:block, after_pass_all_msgs.args[idxs_backward_msgs]...)
 
-  return after_pass_msgs
+  # DEBUG:
+
+  # @show before_pass_all_msgs
+  # @show after_pass_all_msgs
+
+  # @show before_pass_forward_msgs
+  # @show after_pass_forward_msgs
+
+  # @show before_pass_backward_msgs
+  # @show after_pass_backward_msgs
+
+  return after_pass_forward_msgs, after_pass_backward_msgs
+
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Normalize messages in the propagation phase that cause an overflow when running
+the expressions inside `operations`. Operations can be either sum-prod messages
+from the propagation phase or edge/bag marginals computations.
+"""
+function normalize_messages(
+                            obsvals,
+                            pots,
+                            before_pass_forward_msgs,
+                            before_pass_backward_msgs,
+                            operations,
+                           )
+
+  # Evaluate the observed values and the potentials in order to later evaluate operations that use them
+  eval(:(obsvals = $obsvals))
+  eval(pots)
+
+  # Initialize the expression to be returend with a copy of the original messages
+  after_pass_all_msgs  = Expr(:block, vcat(
+                                           before_pass_forward_msgs.args,
+                                           before_pass_backward_msgs.args,
+                                          )...)
+
+  for operation in operations.args
+
+    # Eval the operation to check whether it causes an overflow
+    eval(operation)
+
+    # Parse the operation AND check whether it causes an overflow
+    if @capture(operation, ivar_ = sum(prod(pargs1__), sargs__)) ||
+       @capture(operation, ivar_ = prod(pargs1__)) && 
+       any(isinf,eval(ivar).vals) 
+
+      @warn "Overflow occured in:\n\t$operation"
+
+      # Yes, then find each msg in `pargs1` in `after_pass_all_msgs` and replace it in line
+      for parg in pargs1
+        # Iterate the `after_pass_all_msgs` to search and replace `parg` with its normalized version
+        for i in eachindex(after_pass_all_msgs.args)
+          # Only consider sum-prod messages
+          if @capture(after_pass_all_msgs.args[i], imsg_ = sum(prod(pargs2__), sargs2__))
+            if imsg == parg
+              # Replace the msg with its normalized version in line
+              after_pass_all_msgs.args[i] = :($imsg = sum(prod($(pargs2...)), $(sargs2...)) |> norm)
+              # Re-eval the msg now that it is normalized version
+              eval(after_pass_all_msgs.args[i]) 
+              # Break from iterating through `after_pass_all_msgs`
+              break
+            end
+          end
+        end
+      end
+
+      # Re-eval the current operation now that its argument msgs have been normalized
+      eval(operation)
+
+      # Check if the overflow was fixed
+      any(isinf, eval(ivar).vals) && @error "Overflow not corrected in:\n\t$operation"
+
+    end
+
+  end
+
+  n_msgs_per_pass = length(before_pass_forward_msgs.args)
+  idxs_forward_msgs = 1:n_msgs_per_pass
+  idxs_backward_msgs = (n_msgs_per_pass + 1):(2 * n_msgs_per_pass)
+  after_pass_forward_msgs = Expr(:block, after_pass_all_msgs.args[idxs_forward_msgs]...)
+  after_pass_backward_msgs = Expr(:block, after_pass_all_msgs.args[idxs_backward_msgs]...)
+
+  # DEBUG:
+
+  # @show before_pass_forward_msgs
+  # @show after_pass_forward_msgs
+
+  # @show before_pass_backward_msgs
+  # @show after_pass_backward_msgs
+
+  return after_pass_forward_msgs, after_pass_backward_msgs
 
 end

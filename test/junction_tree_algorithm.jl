@@ -5,7 +5,7 @@ using JunctionTrees
 
   @testset "compile algorithm" begin
 
-    problem = "Promedus_12"
+    problem = "Promedus_13"
     uai_filepath = joinpath(artifact"uai2014", problem * ".uai")
     uai_evid_filepath = joinpath(artifact"uai2014", problem * ".uai.evid")
     uai_mar_filepath = joinpath(artifact"uai2014", problem * ".uai.MAR")
@@ -20,11 +20,28 @@ using JunctionTrees
     # Posterior marginals given evidence
     # ------------------------------------------------------------------------------
 
-    println("    Test: Default")
+    println("    Test: Default (Min-fill heuristic)")
     println("      Compiling algo...")
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
+           )
+    eval(algo)
+    println("      Running algo...")
+    marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+    @test isapprox(marginals, reference_marginals, atol=0.03)
+
+    # ------------------------------------------------------------------------------
+    # Posterior marginals given evidence and existing junction tree
+    # ------------------------------------------------------------------------------
+
+    println("    Test: Using an existing junction tree")
+    println("      Compiling algo...")
+    algo = compile_algo(
+             uai_filepath;
+             uai_evid_filepath = uai_evid_filepath,
+             td_filepath = td_filepath,
+             correct_fp_overflows = true,
            )
     eval(algo)
     println("      Running algo...")
@@ -40,6 +57,7 @@ using JunctionTrees
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
+             td_filepath = td_filepath,
              factor_eltype = Float32,
            )
     eval(algo)
@@ -48,31 +66,17 @@ using JunctionTrees
     @test isapprox(marginals, reference_marginals)
 
     # ------------------------------------------------------------------------------
-    # Posterior marginals given evidence and existing junction tree
+    # Posterior marginals given evidence and with partial evaluation
     # ------------------------------------------------------------------------------
 
-    println("    Test: use an existing junction tree")
+    println("    Test: Partial evaluation")
     println("      Compiling algo...")
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
              td_filepath = td_filepath,
-           )
-    eval(algo)
-    println("      Running algo...")
-    marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
-    @test isapprox(marginals, reference_marginals, atol=0.03)
-
-    # ------------------------------------------------------------------------------
-    # Posterior marginals given evidence and with partial evaluation
-    # ------------------------------------------------------------------------------
-
-    println("    Test: partial evaluation")
-    println("      Compiling algo...")
-    algo = compile_algo(
-             uai_filepath;
-             uai_evid_filepath = uai_evid_filepath,
              apply_partial_evaluation = true,
+             correct_fp_overflows = true,
            )
     eval(algo)
     println("      Running algo...")
@@ -85,11 +89,12 @@ using JunctionTrees
     # Posterior marginals given evidence using OMEinsum as backend
     # ------------------------------------------------------------------------------
 
-    println("    Test: partial evaluation")
+    println("    Test: OMEinsum")
     println("      Compiling algo...")
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
+             td_filepath = td_filepath,
              use_omeinsum = true,
            )
     eval(algo)

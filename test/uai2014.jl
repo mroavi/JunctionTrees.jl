@@ -49,45 +49,36 @@ for benchmark in benchmarks
         # ------------------------------------------------------------------------------
 
         println("    Test type: default")
-
         println("      Compiling algo...")
-
         algo = compile_algo(
                             uai_filepath;
                             uai_evid_filepath = uai_evid_filepath, 
                             td_filepath = td_filepath,
                             factor_eltype = Float64,
+                            correct_fp_overflows = true,
                           )
-
         eval(algo)
-
         println("      Running algo...")
         marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
-
         @test isapprox(marginals, reference_marginals, atol = 0.01)
 
         # ------------------------------------------------------------------------------
         # OMEinsum backend
         # ------------------------------------------------------------------------------
 
-        println("    Test type: OMEinsum backend")
-
-        println("      Compiling algo...")
-
-        algo = compile_algo(
-                            uai_filepath;
-                            uai_evid_filepath = uai_evid_filepath, 
-                            td_filepath = td_filepath,
-                            factor_eltype = Float64,
-                            use_omeinsum = true,
-                          )
-
-        eval(algo)
-
-        println("      Running algo...")
-        marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
-
-        @test isapprox(marginals, reference_marginals, atol = 0.01)
+        # println("    Test type: OMEinsum backend")
+        # println("      Compiling algo...")
+        # algo = compile_algo(
+        #                     uai_filepath;
+        #                     uai_evid_filepath = uai_evid_filepath, 
+        #                     td_filepath = td_filepath,
+        #                     factor_eltype = Float64,
+        #                     use_omeinsum = true,
+        #                   )
+        # eval(algo)
+        # println("      Running algo...")
+        # marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+        # @test isapprox(marginals, reference_marginals, atol = 0.01)
 
       end
     end

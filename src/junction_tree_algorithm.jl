@@ -30,6 +30,7 @@ of all the variables in the model.
 - `smart_root_selection::Bool = true`: select as root the cluster with the largest state space.
 - `factor_eltype::DataType = Float64`: type used to represent the factor values. 
 - `use_omeinsum::Bool = false`: use the OMEinsum tensor network contraction package as backend for the factor operations.
+- `correct_fp_overflows::Bool = false`: Normalize messages in the propagation phase that cause an overflow.
 
 # Examples
 ```
@@ -81,6 +82,7 @@ function compile_algo(uai_filepath::AbstractString;
                       smart_root_selection::Bool = true,
                       factor_eltype::DataType = Float64,
                       use_omeinsum::Bool = false,
+                      correct_fp_overflows::Bool = false,
                      )
 
   # Read PGM
@@ -104,15 +106,13 @@ function compile_algo(uai_filepath::AbstractString;
   # Propagation
   forward_pass, backward_pass = compile_message_propagation!(td, root)
 
-  if true
-    # Normalize the messages that contain a product
-    # (this is to avoid underflows in large problems)
-    forward_pass = normalize_messages(pots, forward_pass)
-    backward_pass = normalize_messages(pots, backward_pass)
-  end
-
   # Partial evaluation
   if apply_partial_evaluation
+    if correct_fp_overflows
+      # Normalize messages that cause an overflow before partially evaluating them
+      operations = Expr(:block, vcat(forward_pass.args, backward_pass.args,)...)
+      forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+    end
     forward_pass, backward_pass = partial_evaluation(td, pots, forward_pass, backward_pass)
   end
 
@@ -125,6 +125,13 @@ function compile_algo(uai_filepath::AbstractString;
 
   # Marginalization
   edge_marginals, bag_marginals, unnormalized_marginals = compile_unnormalized_marginals(td, nvars, apply_partial_evaluation)
+
+  # Floating point overflows/underflows corrections
+  if correct_fp_overflows
+    # Normalize sum-product messages that cause an overflow during the propagation or marginalization phases
+    operations = Expr(:block, vcat(forward_pass.args, backward_pass.args, edge_marginals.args, bag_marginals.args,)...)
+    forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+  end
 
   # Normalization
   normalize_marginals_expr = compile_normalized_marginals(unnormalized_marginals)
