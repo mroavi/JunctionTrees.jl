@@ -200,8 +200,10 @@ function normalize_messages(
 
     # Parse the operation AND check whether it causes an overflow
     if @capture(operation, ivar_ = sum(prod(pargs1__), sargs__)) ||
-       @capture(operation, ivar_ = prod(pargs1__)) && 
-       any(isinf,eval(ivar).vals) 
+      @capture(operation, ivar_ = prod(pargs1__))
+
+      # If none of the values of the evaled msg is `Inf` then continue with the next msg
+      !any(isinf, eval(ivar).vals) && continue
 
       @warn "Overflow occured in:\n\t$operation"
 

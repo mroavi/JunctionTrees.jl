@@ -30,7 +30,7 @@ of all the variables in the model.
 - `smart_root_selection::Bool = true`: select as root the cluster with the largest state space.
 - `factor_eltype::DataType = Float64`: type used to represent the factor values. 
 - `use_omeinsum::Bool = false`: use the OMEinsum tensor network contraction package as backend for the factor operations.
-- `correct_fp_overflows::Bool = false`: Normalize messages in the propagation phase that cause an overflow.
+- `correct_fp_overflows::Bool = false`: normalize messages in the propagation phase that cause an overflow.
 
 # Examples
 ```
