@@ -17,7 +17,9 @@ end
 end
 
 @testset "uai2014" begin
-  include("uai2014.jl")
+  include("uai2014/partial_evaluation.jl")
+  include("uai2014/fp_overflow_correction.jl")
+  include("uai2014/omeinsum.jl")
 end
 
 @testset "doctests" begin

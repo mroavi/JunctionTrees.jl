@@ -14,20 +14,20 @@ using JunctionTrees
     reference_marginals = JunctionTrees.read_uai_mar_file(uai_mar_filepath)
     obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
 
-    println("  Problem: $(problem)")
+    @debug "  Problem: $(problem)"
 
     # ------------------------------------------------------------------------------
     # Posterior marginals given evidence
     # ------------------------------------------------------------------------------
 
-    println("    Test: Default (Min-fill heuristic)")
-    println("      Compiling algo...")
+    @debug "    Test: Default (Min-fill heuristic)"
+    @debug "      Compiling algo..."
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
            )
     eval(algo)
-    println("      Running algo...")
+    @debug "      Running algo..."
     marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
@@ -35,8 +35,8 @@ using JunctionTrees
     # Posterior marginals given evidence and existing junction tree
     # ------------------------------------------------------------------------------
 
-    println("    Test: Using an existing junction tree")
-    println("      Compiling algo...")
+    @debug "    Test: Using an existing junction tree"
+    @debug "      Compiling algo..."
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
@@ -44,7 +44,7 @@ using JunctionTrees
              correct_fp_overflows = true,
            )
     eval(algo)
-    println("      Running algo...")
+    @debug "      Running algo..."
     marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
@@ -52,8 +52,8 @@ using JunctionTrees
     # Posterior marginals given evidence with Float32 factor values
     # ------------------------------------------------------------------------------
 
-    println("    Test: Float32 factor values")
-    println("      Compiling algo...")
+    @debug "    Test: Float32 factor values"
+    @debug "      Compiling algo..."
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
@@ -61,7 +61,7 @@ using JunctionTrees
              factor_eltype = Float32,
            )
     eval(algo)
-    println("      Running algo...")
+    @debug "      Running algo..."
     marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
     @test isapprox(marginals, reference_marginals)
 
@@ -69,8 +69,8 @@ using JunctionTrees
     # Posterior marginals given evidence and with partial evaluation
     # ------------------------------------------------------------------------------
 
-    println("    Test: Partial evaluation")
-    println("      Compiling algo...")
+    @debug "    Test: Partial evaluation"
+    @debug "      Compiling algo..."
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
@@ -79,8 +79,11 @@ using JunctionTrees
              correct_fp_overflows = true,
            )
     eval(algo)
-    println("      Running algo...")
-    marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
+    @debug "      Running algo..."
+    marginal_factors = run_algo(obsvars, obsvals)
+    # Filter the observed variables from the obtained solution
+    marginal_factors_filtered = filter(x -> !(x.vars[1] in obsvars) , marginal_factors)
+    marginals = map(y -> y.vals, marginal_factors_filtered)
     # Filter the observed variables from the reference solution
     reference_marginals_filtered = reference_marginals[setdiff(begin:end, obsvars)]
     @test isapprox(marginals, reference_marginals_filtered, atol=0.03)
@@ -89,8 +92,8 @@ using JunctionTrees
     # Posterior marginals given evidence using OMEinsum as backend
     # ------------------------------------------------------------------------------
 
-    println("    Test: OMEinsum")
-    println("      Compiling algo...")
+    @debug "    Test: OMEinsum"
+    @debug "      Compiling algo..."
     algo = compile_algo(
              uai_filepath;
              uai_evid_filepath = uai_evid_filepath,
@@ -98,7 +101,7 @@ using JunctionTrees
              use_omeinsum = true,
            )
     eval(algo)
-    println("      Running algo...")
+    @debug "      Running algo..."
     marginals = run_algo(obsvars, obsvals) |> x -> map(y -> y.vals, x)
     @test isapprox(marginals, reference_marginals, atol=0.03)
 
