@@ -205,7 +205,7 @@ function normalize_messages(
       # If none of the values of the evaled msg is `Inf` then continue with the next msg
       !any(isinf, eval(ivar).vals) && continue
 
-      @warn "Overflow occured in:\n\t$operation"
+      @debug "Overflow occured in:\n\t$operation"
 
       # Yes, then find each msg in `pargs1` in `after_pass_all_msgs` and replace it in line
       for parg in pargs1
