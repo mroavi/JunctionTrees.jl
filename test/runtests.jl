@@ -1,4 +1,7 @@
 using Test
+using Pkg
+
+Pkg.ensure_artifact_installed("uai2014", "Artifacts.toml")
 
 @testset "factors" begin
   include("factors.jl")
