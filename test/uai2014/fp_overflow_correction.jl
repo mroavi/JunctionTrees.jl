@@ -7,7 +7,7 @@ using JunctionTrees: read_uai_file, read_uai_evid_file, read_uai_mar_file
 @debug "Floating point overflow correction tests starting..."
 
 benchmarks = [
-              "Alchemy",
+              # "Alchemy",
               "CSP",
               "DBN",
               "Grids",

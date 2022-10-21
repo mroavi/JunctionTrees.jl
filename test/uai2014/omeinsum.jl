@@ -10,7 +10,7 @@ benchmarks = [
               # "Alchemy", overflows
               "CSP",
               "DBN",
-              # "Grids", # overflows
+              "Grids",
               # "linkage", # fails: OutOfMemoryError (problems 15,20,23)
               # "ObjectDetection", # fails from 36 onwards
               "Pedigree",
