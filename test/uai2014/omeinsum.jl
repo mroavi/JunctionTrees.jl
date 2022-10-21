@@ -7,7 +7,7 @@ using JunctionTrees: read_uai_file, read_uai_evid_file, read_uai_mar_file
 @debug "OMEinsum backend tests starting..."
 
 benchmarks = [
-              # "Alchemy", overflows
+              # "Alchemy",
               "CSP",
               "DBN",
               "Grids",
