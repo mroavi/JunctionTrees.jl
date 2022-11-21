@@ -1,17 +1,15 @@
 """
 $(TYPEDSIGNATURES)
 
-Speed up the sum-product in the algorithm with einsum contraction routines in
-`OMEinsum`.
+Speed up the sum-product in the algorithm using `OMEinsum`'s contraction routines.
 
 # Examples
 
 ```
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
-algo = compile_algo(uai_filepath);
-algo2 = boost_algo(algo)
-eval(algo2)
+algo = compile_algo(uai_filepath, use_omeinsum = true);
+eval(algo)
 obsvars, obsvals = Int64[], Int64[]
 marginals = run_algo(obsvars, obsvals)
 ```
