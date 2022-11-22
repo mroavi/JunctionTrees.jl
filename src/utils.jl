@@ -216,6 +216,10 @@ end
 $(TYPEDSIGNATURES)
 
 Get the solution arguments of the tree decomposition file passed as argument.
+This function returns a vector with the solution arguments, which consist of:
+1. the number of bags of the tree decomposition
+2. the width of the tree decomposition plus one (i.e., the largest bag size)
+3. the number of vertices of the original input graph
 The tree decomposition file should be defined in the PACE format:
 https://pacechallenge.org/2017/treewidth/
 """
