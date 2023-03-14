@@ -83,6 +83,7 @@ function compile_algo(uai_filepath::AbstractString;
                       factor_eltype::DataType = Float64,
                       use_omeinsum::Bool = false,
                       correct_fp_overflows::Bool = false,
+                      smart_fp_overflow_correction::Bool = false,
                      )
 
   # Read PGM
@@ -111,7 +112,11 @@ function compile_algo(uai_filepath::AbstractString;
     if correct_fp_overflows
       # Normalize messages that cause an overflow before partially evaluating them
       operations = Expr(:block, vcat(forward_pass.args, backward_pass.args,)...)
-      forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+      if smart_fp_overflow_correction
+        forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+      else
+        forward_pass, backward_pass = normalize_messages(forward_pass, backward_pass)
+      end
     end
     forward_pass, backward_pass = partial_evaluation(td, pots, forward_pass, backward_pass)
   end
@@ -130,7 +135,11 @@ function compile_algo(uai_filepath::AbstractString;
   if correct_fp_overflows
     # Normalize sum-product messages that cause an overflow during the propagation or marginalization phases
     operations = Expr(:block, vcat(forward_pass.args, backward_pass.args, edge_marginals.args, bag_marginals.args,)...)
-    forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+    if smart_fp_overflow_correction
+      forward_pass, backward_pass = normalize_messages(obsvals, pots, forward_pass, backward_pass, operations)
+    else
+      forward_pass, backward_pass = normalize_messages(forward_pass, backward_pass)
+    end
   end
 
   # Normalization

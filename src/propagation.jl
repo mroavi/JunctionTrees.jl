@@ -252,3 +252,42 @@ function normalize_messages(
   return after_pass_forward_msgs, after_pass_backward_msgs
 
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Normalize messages in the propagation phase that cause an overflow when running
+the expressions inside `operations`. Operations can be either sum-prod messages
+from the propagation phase or edge/bag marginals computations.
+"""
+function normalize_messages(
+  before_pass_forward_msgs,
+  before_pass_backward_msgs,
+)
+
+  # @show before_pass_forward_msgs
+  after_pass_forward_msgs = normalize_pass(before_pass_forward_msgs)
+  # @show after_pass_forward_msgs
+
+  # @show before_pass_backward_msgs
+  after_pass_backward_msgs = normalize_pass(before_pass_backward_msgs)
+  # @show after_pass_backward_msgs
+
+  return after_pass_forward_msgs, after_pass_backward_msgs
+
+end
+
+function normalize_pass(before_pass_msgs)
+
+  after_pass_msgs = quote end |> rmlines
+
+  for before_pass_msg in before_pass_msgs.args
+    if @capture(before_pass_msg, var_ = sum(args__)) # parse the current msg (note: this filters the line number nodes)
+      after_pass_msg = :($var = sum($(args...)) |> norm) # wrap the evaled prod in the msg
+    end
+    push!(after_pass_msgs.args, after_pass_msg)
+  end
+
+  return after_pass_msgs
+
+end
