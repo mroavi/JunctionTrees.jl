@@ -1,6 +1,6 @@
 """
 Enumerated type used to select up to which stage an expression of the junction
-tree algorithm should be returned after calling [`compile_algo`](@ref).
+tree algorithm should be returned after calling [`@posterior_marginals`](@ref).
 """
 @enum LastStage begin
   ForwardPass
@@ -9,11 +9,18 @@ tree algorithm should be returned after calling [`compile_algo`](@ref).
   UnnormalizedMarginals
   Marginals
 end
-@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression up to and including the forward pass is returned." ForwardPass
-@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression up to and including the backward pass is returned." BackwardPass
-@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the cluster joint marginals is returned." JointMarginals
-@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the joint marginals is returned." UnnormalizedMarginals
-@doc "When assigned to the keyword argument `last_stage` of [`compile_algo`](@ref), an expression that computes the posterior marginals is returned (default)." Marginals
+@doc "When assigned to the keyword argument `last_stage` of [`@posterior_marginals`](@ref), an expression up to and including the forward pass is returned." ForwardPass
+@doc "When assigned to the keyword argument `last_stage` of [`@posterior_marginals`](@ref), an expression up to and including the backward pass is returned." BackwardPass
+@doc "When assigned to the keyword argument `last_stage` of [`@posterior_marginals`](@ref), an expression that computes the cluster joint marginals is returned." JointMarginals
+@doc "When assigned to the keyword argument `last_stage` of [`@posterior_marginals`](@ref), an expression that computes the joint marginals is returned." UnnormalizedMarginals
+@doc "When assigned to the keyword argument `last_stage` of [`@posterior_marginals`](@ref), an expression that computes the posterior marginals is returned (default)." Marginals
+
+macro posterior_marginals(uai_filepath, kwargs...)
+  posterior_marginals(
+    Base.eval(__module__, uai_filepath);
+    map(kwarg -> Pair(first(kwarg.args), Base.eval(__module__, last(kwarg.args))), kwargs)...
+  )
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -36,10 +43,9 @@ of all the variables in the model.
 ```
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
-algo = compile_algo(uai_filepath)
-eval(algo)
+algo = @posterior_marginals(uai_filepath)
 obsvars, obsvals = Int64[], Int64[]
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 
 # output
 
@@ -56,12 +62,11 @@ marginals = run_algo(obsvars, obsvals)
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
 uai_evid_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai.evid")
-algo = compile_algo(
+algo = @posterior_marginals(
          uai_filepath,
          uai_evid_filepath = uai_evid_filepath)
-eval(algo)
 obsvars, obsvals = JunctionTrees.read_uai_evid_file(uai_evid_filepath)
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 
 # output
 
@@ -74,16 +79,17 @@ marginals = run_algo(obsvars, obsvals)
  Factor{Float64, 1}((6,), [0.6118571666785584, 0.3881428333214415])
 ```
 """
-function compile_algo(uai_filepath::AbstractString;
-                      uai_evid_filepath::AbstractString = "",
-                      td_filepath::AbstractString = "",
-                      apply_partial_evaluation::Bool = false,
-                      last_stage::LastStage = Marginals,
-                      smart_root_selection::Bool = true,
-                      factor_eltype::DataType = Float64,
-                      use_omeinsum::Bool = false,
-                      correct_fp_overflows::Bool = false,
-                     )
+function posterior_marginals(
+  uai_filepath::AbstractString;
+  uai_evid_filepath::AbstractString="",
+  td_filepath::AbstractString="",
+  apply_partial_evaluation::Bool=false,
+  last_stage::LastStage=Marginals,
+  smart_root_selection::Bool=true,
+  factor_eltype::DataType=Float64,
+  use_omeinsum::Bool=false,
+  correct_fp_overflows::Bool=false,
+)
 
   # Read PGM
   nvars, cards, _, factors = read_uai_file(uai_filepath, factor_eltype = factor_eltype)

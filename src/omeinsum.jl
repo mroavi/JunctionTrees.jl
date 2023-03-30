@@ -8,10 +8,9 @@ Speed up the sum-product in the algorithm using `OMEinsum`'s contraction routine
 ```
 package_root_dir = pathof(JunctionTrees) |> dirname |> dirname
 uai_filepath = joinpath(package_root_dir, "docs", "src", "problems", "paskin", "paskin.uai")
-algo = compile_algo(uai_filepath, use_omeinsum = true);
-eval(algo)
+algo = @posterior_marginals(uai_filepath, use_omeinsum = true);
 obsvars, obsvals = Int64[], Int64[]
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 ```
 """
 function boost_algo(algo::Expr; optimizer=GreedyMethod())

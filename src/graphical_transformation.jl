@@ -55,12 +55,6 @@ Construct a tree decomposition graph based on `td_filepath`.
 
 The `td_filepath` file format is defined in:
 https://pacechallenge.org/2017/treewidth/.
-
-# Example
-```
-td_filepath = "../problems/Promedus_26/Promedus_26.td"
-td = compile_algo(td_filepath)
-```
 """
 function construct_td_graph(td_filepath::AbstractString)
 

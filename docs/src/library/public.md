@@ -50,7 +50,7 @@ LastStage
 ### Functions
 
 ```@docs
-compile_algo
+@posterior_marginals
 prod
 sum
 redu
