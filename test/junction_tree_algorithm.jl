@@ -5,7 +5,7 @@ using JunctionTrees
 
   @testset "compile algorithm" begin
 
-    problem = "Promedus_13"
+    problem = "Promedus_26"
     uai_filepath = joinpath(artifact"uai2014", problem * ".uai")
     uai_evid_filepath = joinpath(artifact"uai2014", problem * ".uai.evid")
     uai_mar_filepath = joinpath(artifact"uai2014", problem * ".uai.MAR")
