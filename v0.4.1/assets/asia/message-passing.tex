@@ -1,0 +1,73 @@
+\usepackage{tikz}
+\usepackage{xcolor-material} % https://ctan.org/pkg/xcolor-material
+\usepackage{circledsteps}
+\usepackage{xifthen}
+\usetikzlibrary{calc}
+
+\tikzstyle{msgcircle}=[shape=circle,
+                       draw,
+                       inner sep=0pt,
+                       minimum size=4mm,
+                       font=\scriptsize,
+                      ]
+
+\newcommand{\msgcircle}[7]{
+  % Circle left arrow down
+  \ifthenelse{\isin{#1}{left} \AND \isin{#2}{down}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, xshift=-5.0mm] at (anchor) {#6};
+    \node[color={#7}, xshift=-1.5mm] at (anchor) {$\Big\downarrow$};
+  }{}
+  % Circle right arrow down
+  \ifthenelse{\isin{#1}{right} \AND \isin{#2}{down}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle ,xshift=5.0mm] at (anchor) {#6};
+    \node[color={#7}, xshift=1.7mm] at (anchor) {$\Big\downarrow$};
+  }{}
+
+  % Circle down arrow right
+  \ifthenelse{\isin{#1}{down} \AND \isin{#2}{right}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, yshift=-5.0mm] at (anchor) {#6};
+    \node[color={#7}, yshift=-1.7mm, rotate=90] at (anchor) {$\Big\downarrow$};
+  }{}
+  % Circle up arrow right
+  \ifthenelse{\isin{#1}{up} \AND \isin{#2}{right}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, yshift=5.0mm] at (anchor) {#6};
+    \node[color={#7}, yshift=1.5mm, rotate=90] at (anchor) {$\Big\downarrow$};
+  }{}
+
+  % Circle down arrow left
+  \ifthenelse{\isin{#1}{down} \AND \isin{#2}{left}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, yshift=-5.0mm] at (anchor) {#6};
+    \node[color={#7}, yshift=-1.7mm, rotate=-90] at (anchor) {$\Big\downarrow$};
+  }{}
+  % Circle up arrow left
+  \ifthenelse{\isin{#1}{up} \AND \isin{#2}{left}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, yshift=5.0mm] at (anchor) {#6};
+    \node[color={#7}, yshift=1.5mm, rotate=-90] at (anchor) {$\Big\downarrow$};
+  }{}
+
+  % Circle left arrow up
+  \ifthenelse{\isin{#1}{left} \AND \isin{#2}{up}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, xshift=-5.0mm] at (anchor) {#6};
+    \node[color={#7}, xshift=-1.5mm, rotate=180] at (anchor) {$\Big\downarrow$};
+  }{}
+  % Circle right arrow up
+  \ifthenelse{\isin{#1}{right} \AND \isin{#2}{up}}{
+    \coordinate (anchor) at ($({#3})!{#5}!({#4})$);
+    \node[color={#7}, msgcircle, xshift=5.0mm] at (anchor) {#6};
+    \node[color={#7}, xshift=1.7mm, rotate=180] at (anchor) {$\Big\downarrow$};
+  }{}
+}
+
+\tikzset {
+  mybag/.style={circle, thick, draw=black, minimum size=2.0cm, align=center},
+}
+
+\colorlet{IP}{MaterialBlue800} % inward pass
+\colorlet{OP}{MaterialRed800} % outward pass
