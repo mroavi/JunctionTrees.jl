@@ -30,6 +30,7 @@ of all the variables in the model.
 - `smart_root_selection::Bool = true`: select as root the cluster with the largest state space.
 - `factor_eltype::DataType = Float64`: type used to represent the factor values. 
 - `use_omeinsum::Bool = false`: use the OMEinsum tensor network contraction package as backend for the factor operations.
+  - `optimize_contraction_order::Bool = true`: optimize the the contraction of messages if the OMEinsum backend is enabled.
 - `correct_fp_overflows::Bool = false`: normalize messages in the propagation phase that cause an overflow.
 
 # Examples
@@ -82,6 +83,7 @@ function compile_algo(uai_filepath::AbstractString;
                       smart_root_selection::Bool = true,
                       factor_eltype::DataType = Float64,
                       use_omeinsum::Bool = false,
+                      optimize_contraction_order::Bool = true,
                       correct_fp_overflows::Bool = false,
                      )
 
@@ -202,7 +204,7 @@ function compile_algo(uai_filepath::AbstractString;
 
   # OMEinsum
   if use_omeinsum
-    ret = boost_algo(ret)
+    ret = boost_algo(ret, optimizer = optimize_contraction_order ? GreedyMethod() : nothing)
   end
 
   return ret
