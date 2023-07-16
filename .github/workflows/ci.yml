@@ -83,7 +83,7 @@ jobs:
       # TexLive installation
       # Taken from: https://github.com/JuliaTeX/TikzPictures.jl/blob/master/.github/workflows/CI.yml
       - name: Install TexLive
-        run: sudo apt-get install pdf2svg texlive-latex-base texlive-binaries texlive-pictures texlive-latex-extra texlive-luatex
+        run: sudo apt-get update --fix-missing; sudo apt-get install pdf2svg texlive-latex-base texlive-binaries texlive-pictures texlive-latex-extra texlive-luatex
 
       # Instantiate project and make the docs
       - run: |
