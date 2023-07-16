@@ -1,6 +1,7 @@
 \usepackage{tikz}
 \usepackage{xcolor-material} % https://ctan.org/pkg/xcolor-material
 \usetikzlibrary{calc}
+\usetikzlibrary{arrows.meta}
 
 \newcommand{\convexpath}[2]{
   [   
@@ -34,7 +35,8 @@
 }
 
 \tikzset {
-  mybag/.style={circle, thick, draw=black},
+  myarrow/.style= {-{Stealth[scale=1.0]},shorten >=2pt, draw=gray, line width=1pt},
+  mybag/.style={circle, thick, draw=gray, fill=white},
   myclique/.style= {thick},
 }
 

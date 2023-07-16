@@ -40,9 +40,9 @@ tp = TikzPicture(
     \node[below=of ie_aux,myroundbox] (mar) {$P(\bm{Q} \mid {\bf E=e})$};
     \node[below=of ie_aux] (mar_aux) {};
     % row 0
-    \node[above=of aux2,yshift=-12mm,text=black] (in) {\textbf{Input}};
+    \node[above=of aux2,yshift=-12mm,text=gray] (in) {\textbf{Input}};
     % row 4
-    \node[below=of mar_aux,yshift=7mm,text=black] (out) {\textbf{Output}};
+    \node[below=of mar_aux,yshift=7mm,text=gray] (out) {\textbf{Output}};
 
     %% edges
     \draw[myarrow] (rv) -- (ie);
@@ -51,7 +51,7 @@ tp = TikzPicture(
     \draw[myarrow] (qv) -- (ie);
     \draw[myarrow] (ie) -- (mar);
   """,
-  options="transform shape, scale=1.4",
+  options="transform shape, scale=1.8",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "the-inference-problem") * "}",
 )
 save(SVG("the-inference-problem"), tp)
@@ -75,7 +75,7 @@ tp = TikzPicture(
     \node[mybox,below=of jts] (ijt) {Inconsistent Junction Tree};
     \node[mybox,below=of ijt,yshift=0.4cm] (cjt) {Consistent Junction Tree};
     \node[mybox,below=of ijt,yshift=0.4cm] (cjt) {Consistent Junction Tree};
-    \node[text=black,below=of cjt] (mar) {$P(\bm{Q} \mid \bm{E=e})$};
+    \node[text=gray,below=of cjt] (mar) {$P(\bm{Q} \mid \bm{E=e})$};
 
     \draw[myarrow] (pgm) -- (jts);
     \draw[myarrow] (jts) -- (ijt);
@@ -87,7 +87,7 @@ tp = TikzPicture(
     \path (ijt) -- node[mylabel] (pro) {Propagation} (cjt);
     \path (cjt) -- node[mylabel] (mar-nor) {1. Marginalization\\2. Normalization} (mar);
   """,
-  options="transform shape, scale=1.4",
+  options="transform shape, scale=1.8",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "pptc-flow-diagram") * "}",
 )
 save(SVG(joinpath(@__DIR__, "pptc-flow-diagram")), tp)
@@ -132,28 +132,28 @@ tp = TikzPicture(
     % The various elements are conveniently placed using a matrix:
     \matrix[row sep=0.5cm,column sep=0.5cm] {
       % First line
-      \node (a) [mybag] {$A$};  &
+      \node (a) [myvar] {$A$};  &
                                 &
                                 &
-      \node (s) [mybag] {$S$};  &
+      \node (s) [myvar] {$S$};  &
                                \\
       % Second line
-      \node (t) [mybag] {$T$};  &
+      \node (t) [myvar] {$T$};  &
                                 &
-      \node (l) [mybag] {$L$};  &
+      \node (l) [myvar] {$L$};  &
                                 &
-      \node (b) [mybag] {$B$}; \\
+      \node (b) [myvar] {$B$}; \\
       % Third line
                                 &
-      \node (e) [mybag] {$E$};  &
+      \node (e) [myvar] {$E$};  &
                                 &
                                 &
                                \\
       % Forth line
-      \node (x) [mybag] {$X$};  &
+      \node (x) [myvar] {$X$};  &
                                 &
                                 &
-      \node (d) [mybag] {$D$};  &
+      \node (d) [myvar] {$D$};  &
                                \\
   };
 
@@ -166,7 +166,7 @@ tp = TikzPicture(
   \draw [myarrow] (e) edge (d);
   \draw [myarrow] (b) edge (d);
   """,
-  options="transform shape, scale=1.4",
+  options="every node/.style={scale=1.5}",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "asia", "bayesian-network") * "}",
 )
 save(SVG(joinpath(@__DIR__, "asia-bayesian-network")), tp)
@@ -195,46 +195,46 @@ tp = TikzPicture(
   L"""
     \matrix[row sep=0.5cm,column sep=0.5cm] {
       % First line
-      \node (a) [mybag, fill=A] {$A$};  &
+      \node (a) [myvar, fill=A] {$A$};  &
                                         &
                                         &
-      \node (s) [mybag, fill=S] {$S$};  &
+      \node (s) [myvar, fill=S] {$S$};  &
                                        \\
       % Second line
-      \node (t) [mybag, fill=T] {$T$};  &
+      \node (t) [myvar, fill=T] {$T$};  &
                                         &
-      \node (l) [mybag, fill=L] {$L$};  &
+      \node (l) [myvar, fill=L] {$L$};  &
                                         &
-      \node (b) [mybag, fill=B] {$B$}; \\
+      \node (b) [myvar, fill=B] {$B$}; \\
       % Third line
                                         &
-      \node (e) [mybag, fill=E] {$E$};  &
+      \node (e) [myvar, fill=E] {$E$};  &
                                         &
                                         &
                                        \\
       % Forth line
-      \node (x) [mybag, fill=X] {$X$};  &
+      \node (x) [myvar, fill=X] {$X$};  &
                                         &
                                         &
-      \node (d) [mybag, fill=D] {$D$};  &
+      \node (d) [myvar, fill=D] {$D$};  &
                                        \\
     };
 
-    \draw (a) edge (t);
-    \draw (s) edge (l);
-    \draw (s) edge (b);
-    \draw (t) edge (l); % <- added edge
-    \draw (t) edge (e);
-    \draw (l) edge (e);
-    \draw (e) edge (x);
-    \draw (e) edge (d);
-    \draw (b) edge (e); % <- added edge
-    \draw (b) edge (d);
+    \draw [myarrow] (a) edge (t);
+    \draw [myarrow] (s) edge (l);
+    \draw [myarrow] (s) edge (b);
+    \draw [myarrow] (t) edge (l); % <- added edge
+    \draw [myarrow] (t) edge (e);
+    \draw [myarrow] (l) edge (e);
+    \draw [myarrow] (e) edge (x);
+    \draw [myarrow] (e) edge (d);
+    \draw [myarrow] (b) edge (e); % <- added edge
+    \draw [myarrow] (b) edge (d);
 
-    \path (t) -- node[anchor=center,xshift=-0.0cm,yshift=0.3cm,rotate=-90] (be) {$\rightarrow$} (l);
-    \path (b) -- node[anchor=center,xshift=0.2cm,yshift=-0.3cm,rotate=110] (be) {$\rightarrow$} (e);
+    \path (t) -- node[red,anchor=center,xshift=-0.0cm,yshift=0.3cm,rotate=-90] (be) {$\rightarrow$} (l);
+    \path (b) -- node[red,anchor=center,xshift=0.2cm,yshift=-0.3cm,rotate=110] (be) {$\rightarrow$} (e);
   """,
-  options="transform shape, scale=1.4",
+  options="every node/.style={scale=1.5}",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "asia", "moral-graph") * "}",
 )
 save(SVG(joinpath(@__DIR__, "asia-moral-graph")), tp)
@@ -285,19 +285,19 @@ tp = TikzPicture(
                             \\
     };
 
-    \draw (a) edge (t);
-    \draw (s) edge (l);
-    \draw (s) edge (b);
-    \draw (t) edge (l);
-    \draw (t) edge (e);
-    \draw (l) edge (e);
-    \draw (l) edge (b); % <- added edge
-    \draw (e) edge (x);
-    \draw (e) edge (d);
-    \draw (b) edge (e);
-    \draw (b) edge (d);
+    \draw [myarrow] (a) edge (t);
+    \draw [myarrow] (s) edge (l);
+    \draw [myarrow] (s) edge (b);
+    \draw [myarrow] (t) edge (l);
+    \draw [myarrow] (t) edge (e);
+    \draw [myarrow] (l) edge (e);
+    \draw [myarrow] (l) edge (b); % <- added edge
+    \draw [myarrow] (e) edge (x);
+    \draw [myarrow] (e) edge (d);
+    \draw [myarrow] (b) edge (e);
+    \draw [myarrow] (b) edge (d);
 
-    \path (l) -- node[anchor=center,xshift=-0.15cm,yshift=-0.25cm,rotate=90] (bc) {$\rightarrow$} (b);
+    \path (l) -- node[red,anchor=center,xshift=-0.15cm,yshift=-0.25cm,rotate=90] (bc) {$\rightarrow$} (b);
 
     \draw[AT, myclique] \convexpath{a,t}{15pt};
     \draw[TLE, myclique] \convexpath{t,l,e}{15pt};
@@ -306,7 +306,7 @@ tp = TikzPicture(
     \draw[LBE, myclique] \convexpath{l,b,e}{15pt};
     \draw[DEB, myclique] \convexpath{d,e,b}{15pt};
   """,
-  options="transform shape, scale=1.4",
+  options="transform shape, scale=1.5,every node/.style={scale=1.5}",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "asia", "triangulated-graph") * "}",
 )
 save(SVG(joinpath(@__DIR__, "asia-triangulated-graph")), tp)
@@ -372,7 +372,7 @@ tp = TikzPicture(
       (e) edge (ex)
       ;
   """,
-  options="transform shape, scale=1.4",
+  options="every node/.style={scale=1.5}",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "asia", "junction-tree") * "}",
 )
 save(SVG(joinpath(@__DIR__, "asia-junction-tree")), tp)
@@ -466,7 +466,7 @@ tp = TikzPicture(
     \msgcircle{down}{left}{tle}{at}{0.5}{$9$}{OP};
     \msgcircle{down}{right}{tle}{ex}{0.5}{$10$}{OP};
   """,
-  options="transform shape, scale=1.4",
+  options="every node/.style={scale=1.5}",
   preamble="\\input{" * joinpath(@__DIR__, "assets", "asia", "message-passing") * "}",
 )
 save(SVG(joinpath(@__DIR__, "asia-message-passing")), tp)
@@ -525,10 +525,10 @@ tp = TikzPicture(
     %\draw[help lines] (0,0) grid (7,-9);
 
     %\draw [thick] (-1.5, 0.6) rectangle (7.3, -7.45);
-    \draw [dashed,draw=black,line width=2pt] (-7.8, -4.8) -- (2.4, -4.8);
+    \draw [dashed,draw=gray,line width=2pt] (-7.8, -4.8) -- (2.4, -4.8);
 
-    \node [above,yshift=4.0pt,text=black] at (-7.2, -4.75) {Off-line};
-    \node [below,yshift=-4.0pt,text=black] at (-7.2, -4.85) {On-line};
+    \node [above,yshift=4.0pt,text=gray] at (-7.2, -4.75) {Off-line};
+    \node [below,yshift=-4.0pt,text=gray] at (-7.2, -4.85) {On-line};
 
     % row 1
     \node[myroundbox] (pgm) {PGM};
