@@ -13,10 +13,9 @@ Calculates the posterior marginal of each variable in the input graph. The
 input graph should be defined in the [UAI model file format](@ref).
 
 ```@example main
-algo = compile_algo("problems/asia/asia.uai")
-eval(algo)
+algo = @posterior_marginals("problems/asia/asia.uai")
 obsvars, obsvals = Int64[], Int64[]
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 ```
 
 #### Example 2
@@ -27,12 +26,11 @@ format](@ref). The evidence variables and values should be given in the [UAI
 evidence file format](@ref).
 
 ```@example main
-algo = compile_algo(
+algo = @posterior_marginals(
          "problems/asia/asia.uai",
          uai_evid_filepath = "problems/asia/asia.uai.evid")
-eval(algo)
 obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/asia/asia.uai.evid")
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 ```
 
 #### Example 3
@@ -42,13 +40,12 @@ junction tree (which is passed as an argument) is used. This junction tree
 should be defined in the [PACE graph format](@ref).
 
 ```@example main
-algo = compile_algo(
+algo = @posterior_marginals(
          "problems/asia/asia.uai",
          uai_evid_filepath = "problems/asia/asia.uai.evid",
          td_filepath = "problems/asia/asia.td")
-eval(algo)
 obsvars, obsvals = JunctionTrees.read_uai_evid_file("problems/asia/asia.uai.evid")
-marginals = run_algo(obsvars, obsvals)
+marginals = algo(obsvars, obsvals)
 ```
 
 #### Example 4
@@ -57,7 +54,7 @@ Returns the expression of the junction tree algorithm up to the backward pass
 stage.
 
 ```@example main
-backward_pass_expr = compile_algo( "problems/asia/asia.uai", last_stage = BackwardPass)
+backward_pass_expr = @posterior_marginals("problems/asia/asia.uai", last_stage = BackwardPass)
 ```
 
 The stages supported are:

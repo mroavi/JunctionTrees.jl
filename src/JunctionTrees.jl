@@ -3,7 +3,7 @@ Main module for `JunctionTrees.jl` -- a Julia implementation of the junction tre
 
 One main function is exported from this module for public use:
 
-- [`compile_algo`](@ref). Compiles and returns an expression that computes the posterior marginals of the model given evidence using the junction tree algorithm.
+- [`@posterior_marginals`](@ref). Compiles and returns an expression that computes the posterior marginals of the model given evidence using the junction tree algorithm.
 
 # Exports
 
@@ -16,7 +16,7 @@ using Combinatorics: combinations
 using MacroTools: @capture, rmlines
 using MLStyle: @match
 
-export compile_algo, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
+export @posterior_marginals, Factor, prod, sum, redu, norm, LastStage, ForwardPass,
   BackwardPass, JointMarginals, UnnormalizedMarginals, Marginals
 
 import Base:
